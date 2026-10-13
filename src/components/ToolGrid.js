@@ -2,6 +2,7 @@
 import { t } from '../i18n/index.js';
 import { TOOLS, CATEGORIES } from '../tools.js';
 import { escapeHtml, ICONS } from './ui.js';
+import { renderAdSlot } from '../services/adsense.js';
 
 let activeCategory = 'all';
 let searchQuery = '';
@@ -25,6 +26,7 @@ export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro }) 
       </div>
     </section>
     <section class="tools-section"><div class="tools-grid"></div><p class="muted-text empty-search" hidden></p></section>
+    <div id="home-ad"></div>
     <section class="benefits-section">
       <h2 class="benefits-title">${escapeHtml(t('home.whyTitle'))}</h2>
       <div class="benefits-grid">
@@ -85,5 +87,6 @@ export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro }) 
     })
   );
   container.querySelector('#home-pro')?.addEventListener('click', onOpenPro);
+  renderAdSlot(container.querySelector('#home-ad'));
   renderCards();
 }

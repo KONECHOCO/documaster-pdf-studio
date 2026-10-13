@@ -369,4 +369,16 @@ export default {
     ocrNoLang: 'Choisissez au moins une langue.',
     alreadySearchable: 'Toutes les pages contiennent déjà du texte recherchable.',
   },
+  seo: {
+    titleSuffix: "gratuit, en ligne et privé",
+    howTitle: "Comment ça marche",
+    how1: "Choisissez ou déposez votre fichier : il s’ouvre directement dans votre navigateur.",
+    how2: "Réglez les options et lancez le traitement.",
+    how3: "Téléchargez le résultat. Aucun fichier n’est envoyé sur un serveur.",
+    whyTitle: "Pourquoi utiliser DocuMaster",
+    why: "Tout fonctionne sur votre appareil : vos documents restent privés, sans inscription et sans limite. Aussi disponible en app pour iPhone, iPad et Android, avec scanner photo.",
+    otherTools: "Autres outils PDF",
+    homeTitle: "Outils PDF gratuits et privés",
+    homeDesc: "Fusionnez, divisez, compressez, signez, convertissez et numérisez vos PDF gratuitement. Tout se passe dans votre navigateur : aucun fichier n’est envoyé.",
+  },
 };

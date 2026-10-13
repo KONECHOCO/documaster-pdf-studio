@@ -36,7 +36,7 @@ export function renderHeader(container, { onLanguageChange, onThemeToggle, onOpe
 
   container.querySelector('#lang-select').addEventListener('change', (e) => {
     setLanguage(e.target.value);
-    onLanguageChange();
+    onLanguageChange(e.target.value);
   });
   container.querySelector('#theme-toggle-btn').addEventListener('click', onThemeToggle);
   container.querySelector('#pro-btn')?.addEventListener('click', onOpenPro);

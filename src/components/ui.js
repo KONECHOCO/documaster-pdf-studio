@@ -5,6 +5,7 @@ import { saveFile, openFile, isNative } from '../platform/files.js';
 import { UserError, isPdfFile, readBytes } from '../utils/pdfHelper.js';
 import { looksEncrypted, decryptPdfBytes } from '../utils/qpdf.js';
 import { trackAdAction, getMonetization } from '../services/monetization.js';
+import { renderAdSlot } from '../services/adsense.js';
 
 export function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -399,6 +400,9 @@ export function showResult({ blob, filename, details = [], title }) {
     actions.appendChild(cont);
   }
   m.body.appendChild(actions);
+  const ad = document.createElement('div');
+  m.body.appendChild(ad);
+  renderAdSlot(ad);
   trackAdAction();
   return m;
 }

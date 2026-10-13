@@ -116,13 +116,22 @@ setContinueHandler((file) => chooseToolFor(file, t('chooser.continueTitle')));
 function renderAll() {
   const { native, isPro } = getMonetization();
   renderHeader(headerEl, {
-    onLanguageChange: renderAll,
+    onLanguageChange: (lang) => {
+      // Sulle pagine del sito per lingua si passa alla pagina equivalente (indirizzi indicizzati da Google)
+      const { pageLang, slug } = document.documentElement.dataset;
+      if (pageLang && lang && lang !== pageLang) {
+        location.href = `/${lang}/${slug ? `${slug}/` : ''}`;
+        return;
+      }
+      renderAll();
+    },
     onThemeToggle: toggleTheme,
     onOpenPro: openProModal,
     onHome: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
   });
   renderToolGrid(mainEl, { onSelectTool: (id) => openTool(id), onOpenPro: openProModal, showPro: native && !isPro });
-  document.title = `DocuMaster PDF Studio — ${t('home.metaTitle')}`;
+  // Le pagine del sito hanno già un titolo specifico per la ricerca: non va sovrascritto
+  if (!document.documentElement.dataset.pageLang) document.title = `DocuMaster PDF Studio — ${t('home.metaTitle')}`;
 }
 renderAll();
 
@@ -147,6 +156,10 @@ window.addEventListener('drop', (e) => {
   const file = e.dataTransfer?.files?.[0];
   if (file && !document.body.classList.contains('modal-open')) receiveFile(file);
 });
+
+// Pagine del sito dedicate a uno strumento (/it/merge-pdf/…): lo strumento si apre subito
+const pageTool = document.documentElement.dataset.tool;
+if (pageTool && TOOLS.some((tool) => tool.id === pageTool)) openTool(pageTool);
 
 // Aggancio per gli script di screenshot degli store (scripts/capture-store-screenshots.mjs)
 window.__documaster = { openTool, openProModal };

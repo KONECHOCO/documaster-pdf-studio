@@ -1210,3 +1210,45 @@ html {
     gap: 0.35rem;
   }
 }
+
+/* Testo indicizzabile delle pagine del sito (sotto l'app) */
+.seo-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 3rem;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+.seo-content h1 {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+}
+.seo-content h2 {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 1.4rem 0 0.4rem;
+}
+.seo-content ol {
+  padding-left: 1.2rem;
+}
+.seo-links {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+}
+.seo-content a {
+  color: var(--text-secondary);
+}
+.seo-langs {
+  margin-top: 1.2rem;
+}
+.ad-slot {
+  max-width: 1100px;
+  margin: 1rem auto;
+  padding: 0 1rem;
+  min-height: 90px;
+}

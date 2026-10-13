@@ -22,6 +22,9 @@ export const LANGUAGES = [
 const STORAGE_KEY = 'documaster_lang';
 
 function detectLanguage() {
+  // Pagine del sito per lingua (/it/…, /fr/…): la lingua della pagina ha la precedenza
+  const pageLang = document.documentElement.dataset.pageLang;
+  if (pageLang && DICTS[pageLang]) return pageLang;
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && DICTS[saved]) return saved;
