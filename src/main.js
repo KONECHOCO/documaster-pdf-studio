@@ -1,7 +1,16 @@
-// Application Entrypoint - Orchestrates Components, State & Modals
+// Avvio dell'app: tema, interfaccia, strumenti, file ricevuti dalle altre app, monetizzazione.
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import '@fontsource/outfit/600.css';
+import '@fontsource/outfit/700.css';
+import '@fontsource/outfit/800.css';
 import './styles/theme.css';
 import './styles/app.css';
+import './styles/components.css';
 
+import { t } from './i18n/index.js';
 import { renderHeader } from './components/Header.js';
 import { renderToolGrid } from './components/ToolGrid.js';
 import { openScannerModal } from './components/ScannerModal.js';
@@ -11,74 +20,134 @@ import { openSignatureModal } from './components/SignatureModal.js';
 import { openOrganizeModal } from './components/OrganizeModal.js';
 import { openGenericToolModal } from './components/GenericToolModal.js';
 import { openFillFormModal } from './components/FillFormModal.js';
+import { openRedactModal } from './components/RedactModal.js';
+import { openProModal } from './components/ProModal.js';
+import { openModal, setContinueHandler, closeTopModal, preparePdf, showError, escapeHtml } from './components/ui.js';
+import { TOOLS, PDF_TOOLS } from './tools.js';
+import { listenForIncomingFiles, listenForBackButton } from './platform/files.js';
+import { initMonetization, trackAdAction, subscribeMonetization, getMonetization } from './services/monetization.js';
+import { isPdfFile } from './utils/pdfHelper.js';
 
-// Setup DOM Root Structure
 const app = document.getElementById('app');
 app.innerHTML = `
   <header id="app-header"></header>
   <main id="app-main"></main>
-`;
+  <div id="ad-diagnostics"></div>`;
+const headerEl = document.getElementById('app-header');
+const mainEl = document.getElementById('app-main');
 
-const headerContainer = document.getElementById('app-header');
-const mainContainer = document.getElementById('app-main');
+// Tema: quello salvato, altrimenti quello del sistema
+function initialTheme() {
+  try {
+    const saved = localStorage.getItem('documaster_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+  } catch {
+    // storage non disponibile
+  }
+  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+document.documentElement.setAttribute('data-theme', initialTheme());
 
-// Initialize saved theme
-const savedTheme = localStorage.getItem('documaster_theme') || 'dark';
-document.documentElement.setAttribute('data-theme', savedTheme);
-
-function handleThemeToggle() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('documaster_theme', newTheme);
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try {
+    localStorage.setItem('documaster_theme', next);
+  } catch {
+    // storage non disponibile
+  }
   renderAll();
 }
 
-function handleLanguageChange() {
-  renderAll();
-}
-
-function handleSelectTool(toolId, initialFile = null) {
-  if (toolId === 'scanner') {
-    openScannerModal();
-  } else if (toolId === 'analytics') {
-    openAnalyticsModal(initialFile, null, (action, file) => {
-      handleSelectTool(action, file);
-    });
-  } else if (toolId === 'edit') {
-    openEditorModal(initialFile);
-  } else if (toolId === 'sign') {
-    openSignatureModal(initialFile);
-  } else if (toolId === 'fillForm') {
-    openFillFormModal(initialFile);
-  } else if (toolId === 'organize') {
-    openOrganizeModal(initialFile);
-  } else {
-    openGenericToolModal(toolId, initialFile);
+/** Apre uno strumento, eventualmente con file già pronti (decifrati se protetti). */
+export function openTool(toolId, files = []) {
+  trackAdAction();
+  const file = files[0] || null;
+  switch (toolId) {
+    case 'scanner':
+      return openScannerModal();
+    case 'analytics':
+      return openAnalyticsModal(file, (action, f) => openTool(action, [f]));
+    case 'edit':
+      return openEditorModal(file);
+    case 'sign':
+      return openSignatureModal(file);
+    case 'fillForm':
+      return openFillFormModal(file);
+    case 'organize':
+      return openOrganizeModal(file);
+    case 'redact':
+      return openRedactModal(file);
+    default:
+      return openGenericToolModal(toolId, files);
   }
 }
+
+/** Scelta dello strumento per un PDF arrivato da fuori (trascinato, "Apri con…", risultato precedente). */
+function chooseToolFor(file, title) {
+  const m = openModal({ title: title || t('chooser.title'), subtitle: file.name, size: 'md' });
+  const grid = document.createElement('div');
+  grid.className = 'chooser-grid';
+  grid.innerHTML = TOOLS.filter((tool) => PDF_TOOLS.includes(tool.id))
+    .map(
+      (tool) => `<button class="chooser-item" data-id="${tool.id}"><span class="card-icon card-icon-sm" style="background:${tool.color}">${tool.icon}</span><span>${escapeHtml(t(`tools.${tool.id}.title`))}</span></button>`
+    )
+    .join('');
+  grid.querySelectorAll('.chooser-item').forEach((b) =>
+    b.addEventListener('click', () => {
+      m.close();
+      openTool(b.dataset.id, [file]);
+    })
+  );
+  m.body.appendChild(grid);
+}
+
+async function receiveFile(file) {
+  try {
+    if (!isPdfFile(file)) return;
+    chooseToolFor(await preparePdf(file));
+  } catch (err) {
+    showError(err);
+  }
+}
+
+setContinueHandler((file) => chooseToolFor(file, t('chooser.continueTitle')));
 
 function renderAll() {
-  renderHeader(headerContainer, handleLanguageChange, handleThemeToggle);
-  renderToolGrid(mainContainer, handleSelectTool);
+  const { native, isPro } = getMonetization();
+  renderHeader(headerEl, {
+    onLanguageChange: renderAll,
+    onThemeToggle: toggleTheme,
+    onOpenPro: openProModal,
+    onHome: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+  });
+  renderToolGrid(mainEl, { onSelectTool: (id) => openTool(id), onOpenPro: openProModal, showPro: native && !isPro });
+  document.title = `DocuMaster PDF Studio — ${t('home.metaTitle')}`;
 }
-
-// Initial Render
 renderAll();
 
-// Global Drag & Drop on whole window to auto-inspect or process PDF
-window.addEventListener('dragover', (e) => {
-  e.preventDefault();
-});
-
-window.addEventListener('drop', (e) => {
-  e.preventDefault();
-  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-    const file = e.dataTransfer.files[0];
-    if (file.type === 'application/pdf') {
-      openAnalyticsModal(file, null, (action, f) => {
-        handleSelectTool(action, f);
-      });
-    }
+// Banner AdMob: spazio riservato in fondo; pannello diagnostico con gli annunci di test
+let lastPro = getMonetization().isPro;
+subscribeMonetization((s) => {
+  document.documentElement.style.setProperty('--banner-height', `${s.isPro ? 0 : s.bannerHeight}px`);
+  const diagEl = document.getElementById('ad-diagnostics');
+  if (s.testAds && s.native) {
+    diagEl.innerHTML = `<details class="ad-diag"><summary>ADS DEBUG · ready=${s.adsReady} pro=${s.isPro}</summary><div>${s.diag.map((l) => `<div>${escapeHtml(l)}</div>`).join('')}</div></details>`;
+  } else diagEl.innerHTML = '';
+  if (s.isPro !== lastPro) {
+    lastPro = s.isPro;
+    renderAll();
   }
 });
+
+// PDF trascinato in qualsiasi punto della finestra (desktop)
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer?.files?.[0];
+  if (file && !document.body.classList.contains('modal-open')) receiveFile(file);
+});
+
+listenForIncomingFiles(receiveFile);
+listenForBackButton(closeTopModal);
+initMonetization();

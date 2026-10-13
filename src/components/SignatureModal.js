@@ -1,463 +1,341 @@
-// Electronic Signature (eSign) Modal: Draw, Type, Upload & Place onto PDF
-import { t } from '../i18n/translations.js';
-import { fileToArrayBuffer, loadPdfLibDoc, loadPdfJsDoc, renderPageToCanvas } from '../utils/pdfHelper.js';
-import confetti from 'canvas-confetti';
+// Firma: crea la firma (disegno, testo in corsivo, immagine), la ricorda sul dispositivo e la posiziona
+// sulla pagina con un riquadro trascinabile e ridimensionabile (dito o mouse).
+import '@fontsource/dancing-script/600.css';
+import { PDFDocument } from 'pdf-lib';
+import { t } from '../i18n/index.js';
+import { getTool } from '../tools.js';
+import { openModal, button, setButtonBusy, showResult, showError, escapeHtml, ICONS, toast } from './ui.js';
+import { createPageView, loadPdfInto, makeDraggable } from './pageView.js';
+import { readBytes, pdfBlob, baseName, loadImageBitmap } from '../utils/pdfHelper.js';
+import { viewportRectToPdf } from '../utils/geometry.js';
 
-export function openSignatureModal(initialFile = null, onClose) {
-  let activeFile = initialFile;
-  let activeTab = 'draw'; // 'draw', 'type', 'upload'
-  let signatureDataUrl = null;
-  let pdfJsDoc = null;
-  let currentPage = 1;
-  let totalPages = 1;
-  let sigPos = { x: 50, y: 50, width: 180, height: 70 };
-  let inkColor = '#1e3a8a'; // Royal Navy Blue
+const SAVED_KEY = 'documaster.signatures';
+const INKS = ['#0f172a', '#1d4ed8', '#b91c1c'];
 
-  const modalEl = document.createElement('div');
-  modalEl.className = 'modal-overlay active';
-  modalEl.innerHTML = `
-    <div class="modal-content" style="max-width: 900px;">
-      <div class="modal-header">
-        <div class="modal-title-group">
-          <div class="modal-title-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
-              <path d="M14 8c-2 2-3 4-3 6s1 2 2 2 3-1 3-3"></path>
-            </svg>
-          </div>
-          <div>
-            <h3 class="modal-title">${t('toolDetails.signTitle')}</h3>
-            <p class="modal-subtitle">${t('toolDetails.signDesc')}</p>
-          </div>
-        </div>
-        <button class="close-modal-btn" id="btn-close-sign">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <div class="modal-body" id="sign-modal-body">
-        ${!activeFile ? `
-          <div class="dropzone" id="sign-dropzone">
-            <input type="file" id="sign-file-input" accept="application/pdf" style="display:none;" />
-            <div class="dropzone-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-            </div>
-            <p class="dropzone-prompt">${t('common.uploadPrompt')}</p>
-            <button class="btn btn-secondary" style="margin-top:0.85rem;" onclick="document.getElementById('sign-file-input').click()">
-              ${t('common.browseFiles')}
-            </button>
-          </div>
-        ` : `
-          <div style="text-align:center; padding:2rem 0; color:var(--text-muted);">
-            Inizializzazione documento...
-          </div>
-        `}
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-cancel-sign">${t('common.cancel')}</button>
-        <button class="btn btn-success" id="btn-burn-signature" disabled>
-          ${t('common.download')} PDF Firmato
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modalEl);
-
-  const bodyEl = modalEl.querySelector('#sign-modal-body');
-  const btnClose = modalEl.querySelector('#btn-close-sign');
-  const btnCancel = modalEl.querySelector('#btn-cancel-sign');
-  const btnBurn = modalEl.querySelector('#btn-burn-signature');
-
-  function bindUploadEvents() {
-    const dropzone = modalEl.querySelector('#sign-dropzone');
-    const fileInput = modalEl.querySelector('#sign-file-input');
-    if (!dropzone || !fileInput) return;
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        activeFile = e.target.files[0];
-        initSignFlow();
-      }
-    });
-
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.classList.add('dragover');
-    });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        activeFile = e.dataTransfer.files[0];
-        initSignFlow();
-      }
-    });
+function loadSaved() {
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_KEY)) || [];
+  } catch {
+    return [];
   }
+}
+function remember(dataUrl) {
+  const list = [dataUrl, ...loadSaved().filter((d) => d !== dataUrl)].slice(0, 4);
+  try {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+  } catch {
+    // spazio esaurito: la firma resta valida per questa sessione
+  }
+}
 
-  async function initSignFlow() {
-    try {
-      const buffer = await fileToArrayBuffer(activeFile);
-      pdfJsDoc = await loadPdfJsDoc(buffer);
-      totalPages = pdfJsDoc.numPages;
-      currentPage = 1;
-      renderSignaturePad();
-    } catch (err) {
-      console.error('Error loading PDF for signing:', err);
-      bodyEl.innerHTML = `<div style="color:var(--danger); padding:2rem; text-align:center;">Errore: ${err.message}</div>`;
+/** Ritaglia i bordi trasparenti: il riquadro sulla pagina avrà le proporzioni reali della firma. */
+function trimCanvas(canvas) {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const { width, height } = canvas;
+  const data = ctx.getImageData(0, 0, width, height).data;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > 10) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
     }
   }
+  if (maxX < 0) return null;
+  const pad = 6;
+  minX = Math.max(0, minX - pad);
+  minY = Math.max(0, minY - pad);
+  maxX = Math.min(width - 1, maxX + pad);
+  maxY = Math.min(height - 1, maxY + pad);
+  const out = document.createElement('canvas');
+  out.width = maxX - minX + 1;
+  out.height = maxY - minY + 1;
+  out.getContext('2d').drawImage(canvas, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
+}
 
-  function renderSignaturePad() {
-    bodyEl.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:1.25rem;">
-        <!-- Tabs -->
-        <div style="display:flex; gap:0.6rem;">
-          <button class="tab-btn active" id="tab-draw-sig">${t('toolDetails.signTabDraw')}</button>
-          <button class="tab-btn" id="tab-type-sig">${t('toolDetails.signTabType')}</button>
-          <button class="tab-btn" id="tab-upload-sig">${t('toolDetails.signTabUpload')}</button>
-        </div>
-
-        <!-- Mode 1: Draw Signature Canvas -->
-        <div id="draw-sig-container">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
-            <div style="display:flex; gap:0.5rem; align-items:center;">
-              <span style="font-size:0.8rem; font-weight:600; color:var(--text-secondary);">${t('toolDetails.color')}</span>
-              <button class="btn" style="width:24px; height:24px; border-radius:50%; background:#1e3a8a; padding:0; border:2px solid #fff;" data-ink="#1e3a8a" title="Blu Reale"></button>
-              <button class="btn" style="width:24px; height:24px; border-radius:50%; background:#090d16; padding:0; border:2px solid #64748b;" data-ink="#090d16" title="Nero"></button>
-              <button class="btn" style="width:24px; height:24px; border-radius:50%; background:#dc2626; padding:0; border:2px solid #64748b;" data-ink="#dc2626" title="Rosso"></button>
-            </div>
-            <button class="btn btn-secondary" id="btn-clear-sig-pad" style="font-size:0.75rem; padding:0.25rem 0.65rem;">
-              ${t('toolDetails.clearSignature')}
-            </button>
-          </div>
-          <canvas id="sig-pad-canvas" class="signature-canvas" width="800" height="220"></canvas>
-        </div>
-
-        <!-- Mode 2: Type Signature -->
-        <div id="type-sig-container" style="display:none; flex-direction:column; gap:1rem;">
-          <input type="text" id="type-sig-input" class="search-input" placeholder="${t('toolDetails.typePlaceholder')}" style="padding-left:1.25rem;" />
-          <div style="background:#fff; border-radius:var(--radius-md); padding:1.5rem; text-align:center; min-height:120px; display:flex; align-items:center; justify-content:center;">
-            <span id="typed-sig-preview" style="font-family:'Brush Script MT', 'Dancing Script', cursive; font-size:3.2rem; color:${inkColor};">
-              Firma Anteprima
-            </span>
-          </div>
-        </div>
-
-        <!-- Mode 3: Upload Image Signature -->
-        <div id="upload-sig-container" style="display:none;">
-          <input type="file" id="sig-image-input" accept="image/png, image/jpeg" style="display:none;" />
-          <button class="btn btn-secondary" onclick="document.getElementById('sig-image-input').click()">
-            Seleziona Immagine Firma (PNG o JPG)
-          </button>
-        </div>
-
-        <!-- Proceed to Place Signature Button -->
-        <button class="btn btn-primary" id="btn-confirm-sig" style="margin-top:0.5rem; align-self:flex-start;">
-          ${t('toolDetails.placeSignature')}
-        </button>
-
-        <!-- Preview Placement Canvas on PDF Page -->
-        <div id="placement-section" style="display:none; flex-direction:column; gap:1rem; margin-top:1rem; border-top:1px solid var(--border-color); padding-top:1rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-primary);">
-              Trascina o clicca sulla pagina per posizionare la firma:
-            </h4>
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-              <button class="btn btn-secondary" id="btn-sig-prev-p" style="padding:0.25rem 0.6rem;">◀</button>
-              <span id="sig-page-lbl" style="font-size:0.85rem; font-weight:600;">1 / ${totalPages}</span>
-              <button class="btn btn-secondary" id="btn-sig-next-p" style="padding:0.25rem 0.6rem;">▶</button>
-            </div>
-          </div>
-          
-          <div style="position:relative; width:100%; max-height:480px; overflow:auto; display:flex; justify-content:center; background:#1e293b; padding:1.5rem; border-radius:var(--radius-md);">
-            <div style="position:relative;" id="sig-page-container">
-              <canvas id="sig-page-bg"></canvas>
-              <div id="signature-stamp-box" style="position:absolute; border:2px dashed var(--primary); cursor:move; display:flex; align-items:center; justify-content:center; background:rgba(99, 102, 241, 0.1);">
-                <img id="stamp-img-preview" style="width:100%; height:100%; object-fit:contain; pointer-events:none;" />
-              </div>
-            </div>
-          </div>
+/** Finestra di creazione firma. Restituisce un data URL PNG trasparente, o null. */
+export function askSignature() {
+  return new Promise((resolve) => {
+    let result = null;
+    let mode = 'draw';
+    let ink = INKS[0];
+    const m = openModal({ title: t('signature.createTitle'), size: 'md', onClose: () => resolve(result) });
+    const saved = loadSaved();
+    m.body.innerHTML = `
+      ${saved.length ? `<div class="field-label">${escapeHtml(t('signature.saved'))}</div><div class="saved-sigs">${saved.map((d, i) => `<button class="saved-sig" data-i="${i}"><img src="${d}" alt=""/></button>`).join('')}</div>` : ''}
+      <div class="segmented" id="sig-mode">
+        <button data-mode="draw" class="active">${escapeHtml(t('signature.draw'))}</button>
+        <button data-mode="type">${escapeHtml(t('signature.type'))}</button>
+        <button data-mode="upload">${escapeHtml(t('signature.upload'))}</button>
+      </div>
+      <div class="sig-panel" data-panel="draw">
+        <canvas class="signature-canvas" id="sig-pad"></canvas>
+        <div class="sig-tools">
+          <div class="swatches">${INKS.map((c, i) => `<button class="swatch ${i === 0 ? 'active' : ''}" data-ink="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>
+          <button class="btn btn-secondary btn-sm" id="sig-clear">${escapeHtml(t('signature.clear'))}</button>
         </div>
       </div>
-    `;
+      <div class="sig-panel" data-panel="type" hidden>
+        <input class="text-input" id="sig-name" maxlength="40" placeholder="${escapeHtml(t('signature.typePlaceholder'))}" />
+        <div class="typed-preview" id="sig-preview"></div>
+      </div>
+      <div class="sig-panel" data-panel="upload" hidden>
+        <input type="file" id="sig-file" accept="image/*" hidden />
+        <button class="btn btn-secondary" id="sig-pick">${ICONS.image}<span>${escapeHtml(t('signature.pickImage'))}</span></button>
+        <p class="field-hint">${escapeHtml(t('signature.uploadHint'))}</p>
+        <img id="sig-upload-preview" class="upload-preview" hidden alt="" />
+      </div>`;
 
-    bindPadEvents();
-  }
+    m.body.querySelectorAll('.saved-sig').forEach((b) =>
+      b.addEventListener('click', () => {
+        result = saved[Number(b.dataset.i)];
+        m.close();
+      })
+    );
 
-  function bindPadEvents() {
-    const pad = bodyEl.querySelector('#sig-pad-canvas');
+    const modeBtns = m.body.querySelectorAll('#sig-mode button');
+    modeBtns.forEach((b) =>
+      b.addEventListener('click', () => {
+        mode = b.dataset.mode;
+        modeBtns.forEach((x) => x.classList.toggle('active', x === b));
+        m.body.querySelectorAll('.sig-panel').forEach((p) => (p.hidden = p.dataset.panel !== mode));
+        if (mode === 'draw') sizePad();
+      })
+    );
+
+    // --- Disegno
+    const pad = m.body.querySelector('#sig-pad');
     const ctx = pad.getContext('2d');
-    ctx.lineWidth = 3.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = inkColor;
-
-    let drawing = false;
-
-    pad.onmousedown = (e) => {
-      drawing = true;
-      const rect = pad.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (pad.width / rect.width);
-      const y = (e.clientY - rect.top) * (pad.height / rect.height);
+    let hasInk = false;
+    function sizePad() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const w = pad.clientWidth || 500;
+      const h = pad.clientHeight || 200;
+      if (pad.width === Math.round(w * dpr)) return;
+      pad.width = Math.round(w * dpr);
+      pad.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      hasInk = false;
+    }
+    requestAnimationFrame(sizePad);
+    pad.style.touchAction = 'none';
+    let last = null;
+    pad.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      pad.setPointerCapture(e.pointerId);
+      const r = pad.getBoundingClientRect();
+      last = { x: e.clientX - r.left, y: e.clientY - r.top };
+    });
+    pad.addEventListener('pointermove', (e) => {
+      if (!last) return;
+      const r = pad.getBoundingClientRect();
+      const p = { x: e.clientX - r.left, y: e.clientY - r.top };
+      ctx.strokeStyle = ink;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      // Tratto più sottile quando si va veloci: aspetto più naturale
+      const speed = Math.hypot(p.x - last.x, p.y - last.y);
+      ctx.lineWidth = Math.max(1.6, 3.4 - speed * 0.06) * (e.pressure && e.pointerType === 'pen' ? 0.6 + e.pressure : 1);
       ctx.beginPath();
-      ctx.moveTo(x, y);
-    };
-
-    pad.onmousemove = (e) => {
-      if (!drawing) return;
-      const rect = pad.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (pad.width / rect.width);
-      const y = (e.clientY - rect.top) * (pad.height / rect.height);
-      ctx.lineTo(x, y);
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(p.x, p.y);
       ctx.stroke();
-    };
-
-    pad.onmouseup = () => (drawing = false);
-    pad.onmouseleave = () => (drawing = false);
-
-    // Clear Pad
-    bodyEl.querySelector('#btn-clear-sig-pad').onclick = () => {
+      last = p;
+      hasInk = true;
+    });
+    const stop = () => (last = null);
+    pad.addEventListener('pointerup', stop);
+    pad.addEventListener('pointercancel', stop);
+    m.body.querySelector('#sig-clear').addEventListener('click', () => {
       ctx.clearRect(0, 0, pad.width, pad.height);
-    };
+      hasInk = false;
+    });
+    m.body.querySelectorAll('[data-ink]').forEach((b) =>
+      b.addEventListener('click', () => {
+        ink = b.dataset.ink;
+        m.body.querySelectorAll('[data-ink]').forEach((x) => x.classList.toggle('active', x === b));
+        m.body.querySelector('#sig-preview').style.color = ink;
+      })
+    );
 
-    // Color Swatches
-    bodyEl.querySelectorAll('button[data-ink]').forEach((btn) => {
-      btn.onclick = () => {
-        inkColor = btn.getAttribute('data-ink');
-        ctx.strokeStyle = inkColor;
-        bodyEl.querySelectorAll('button[data-ink]').forEach((b) => (b.style.border = '2px solid #64748b'));
-        btn.style.border = '2px solid #fff';
-        const preview = bodyEl.querySelector('#typed-sig-preview');
-        if (preview) preview.style.color = inkColor;
-      };
+    // --- Testo
+    const nameInput = m.body.querySelector('#sig-name');
+    const preview = m.body.querySelector('#sig-preview');
+    nameInput.addEventListener('input', () => (preview.textContent = nameInput.value));
+
+    // --- Immagine
+    let uploaded = null;
+    const fileInput = m.body.querySelector('#sig-file');
+    m.body.querySelector('#sig-pick').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0];
+      if (!f) return;
+      try {
+        const bmp = await loadImageBitmap(f);
+        const c = document.createElement('canvas');
+        const s = Math.min(1, 1200 / Math.max(bmp.width, bmp.height));
+        c.width = Math.round(bmp.width * s);
+        c.height = Math.round(bmp.height * s);
+        const cx = c.getContext('2d', { willReadFrequently: true });
+        cx.drawImage(bmp, 0, 0, c.width, c.height);
+        // Sfondo bianco della foto → trasparente, così la firma non copre il documento
+        const img = cx.getImageData(0, 0, c.width, c.height);
+        for (let i = 0; i < img.data.length; i += 4) {
+          const lum = img.data[i] * 0.299 + img.data[i + 1] * 0.587 + img.data[i + 2] * 0.114;
+          if (lum > 200) img.data[i + 3] = 0;
+          else if (lum > 150) img.data[i + 3] = Math.round(((200 - lum) / 50) * 255);
+        }
+        cx.putImageData(img, 0, 0);
+        uploaded = trimCanvas(c) || c;
+        const pv = m.body.querySelector('#sig-upload-preview');
+        pv.src = uploaded.toDataURL('image/png');
+        pv.hidden = false;
+      } catch (err) {
+        showError(err);
+      }
     });
 
-    // Tab clicks
-    const tabDraw = bodyEl.querySelector('#tab-draw-sig');
-    const tabType = bodyEl.querySelector('#tab-type-sig');
-    const tabUpload = bodyEl.querySelector('#tab-upload-sig');
-    const drawBox = bodyEl.querySelector('#draw-sig-container');
-    const typeBox = bodyEl.querySelector('#type-sig-container');
-    const uploadBox = bodyEl.querySelector('#upload-sig-container');
-
-    tabDraw.onclick = () => {
-      activeTab = 'draw';
-      tabDraw.classList.add('active');
-      tabType.classList.remove('active');
-      tabUpload.classList.remove('active');
-      drawBox.style.display = 'block';
-      typeBox.style.display = 'none';
-      uploadBox.style.display = 'none';
-    };
-
-    tabType.onclick = () => {
-      activeTab = 'type';
-      tabType.classList.add('active');
-      tabDraw.classList.remove('active');
-      tabUpload.classList.remove('active');
-      drawBox.style.display = 'none';
-      typeBox.style.display = 'flex';
-      uploadBox.style.display = 'none';
-    };
-
-    tabUpload.onclick = () => {
-      activeTab = 'upload';
-      tabUpload.classList.add('active');
-      tabDraw.classList.remove('active');
-      tabType.classList.remove('active');
-      drawBox.style.display = 'none';
-      typeBox.style.display = 'none';
-      uploadBox.style.display = 'block';
-    };
-
-    const typeInput = bodyEl.querySelector('#type-sig-input');
-    const typePreview = bodyEl.querySelector('#typed-sig-preview');
-    typeInput.oninput = (e) => {
-      typePreview.textContent = e.target.value || 'Firma Anteprima';
-    };
-
-    const sigImageInput = bodyEl.querySelector('#sig-image-input');
-    sigImageInput.onchange = (e) => {
-      if (e.target.files && e.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (re) => {
-          signatureDataUrl = re.target.result;
-          alert('Immagine firma caricata! Clicca ora "Posiziona Firma su PDF".');
-        };
-        reader.readAsDataURL(e.target.files[0]);
+    const cancel = button(t('common.cancel'));
+    const ok = button(t('signature.use'), { variant: 'primary' });
+    m.footer.append(cancel, ok);
+    cancel.onclick = () => m.close();
+    ok.onclick = async () => {
+      let canvas = null;
+      if (mode === 'draw') {
+        if (!hasInk) return toast(t('signature.empty'));
+        canvas = trimCanvas(pad);
+      } else if (mode === 'type') {
+        const name = nameInput.value.trim();
+        if (!name) return toast(t('signature.empty'));
+        await document.fonts.load('600 80px "Dancing Script"').catch(() => {});
+        const c = document.createElement('canvas');
+        c.width = 1400;
+        c.height = 260;
+        const cx = c.getContext('2d');
+        cx.font = '600 120px "Dancing Script", cursive';
+        cx.fillStyle = ink;
+        cx.textBaseline = 'middle';
+        cx.fillText(name, 20, 130);
+        canvas = trimCanvas(c);
+      } else {
+        if (!uploaded) return toast(t('signature.empty'));
+        canvas = uploaded;
       }
+      if (!canvas) return toast(t('signature.empty'));
+      result = canvas.toDataURL('image/png');
+      remember(result);
+      m.close();
     };
+  });
+}
 
-    // Confirm signature & open placement on PDF
-    bodyEl.querySelector('#btn-confirm-sig').onclick = async () => {
-      if (activeTab === 'draw') {
-        signatureDataUrl = pad.toDataURL('image/png');
-      } else if (activeTab === 'type') {
-        // Render typed text to a canvas
-        const tc = document.createElement('canvas');
-        tc.width = 600;
-        tc.height = 180;
-        const tctx = tc.getContext('2d');
-        tctx.font = `64px 'Brush Script MT', 'Dancing Script', cursive`;
-        tctx.fillStyle = inkColor;
-        tctx.textAlign = 'center';
-        tctx.textBaseline = 'middle';
-        tctx.fillText(typeInput.value || 'Firma', tc.width / 2, tc.height / 2);
-        signatureDataUrl = tc.toDataURL('image/png');
-      }
+export function openSignatureModal(initialFile = null) {
+  const tool = getTool('sign');
+  const m = openModal({ title: t('tools.sign.title'), subtitle: t('tools.sign.desc'), icon: tool.icon, color: tool.color, size: 'xl' });
 
-      if (!signatureDataUrl) {
-        alert('Disegna o inserisci una firma prima di posizionarla.');
-        return;
-      }
-
-      renderPlacementSection();
-    };
-  }
-
-  async function renderPlacementSection() {
-    const placementSec = bodyEl.querySelector('#placement-section');
-    placementSec.style.display = 'flex';
-    btnBurn.disabled = false;
-
-    const bgCanvas = bodyEl.querySelector('#sig-page-bg');
-    const stampBox = bodyEl.querySelector('#signature-stamp-box');
-    const stampImg = bodyEl.querySelector('#stamp-img-preview');
-    stampImg.src = signatureDataUrl;
-
-    const { canvas: pageCanvas } = await renderPageToCanvas(pdfJsDoc, currentPage, 1.2);
-    bgCanvas.width = pageCanvas.width;
-    bgCanvas.height = pageCanvas.height;
-    const bgCtx = bgCanvas.getContext('2d');
-    bgCtx.drawImage(pageCanvas, 0, 0);
-
-    // Initial Stamp box position
-    stampBox.style.width = '180px';
-    stampBox.style.height = '70px';
-    stampBox.style.left = '40px';
-    stampBox.style.top = `${bgCanvas.height - 120}px`;
-    sigPos = { x: 40, y: bgCanvas.height - 120, width: 180, height: 70 };
-
-    // Drag signature box on canvas
-    let isDraggingStamp = false;
-    let offsetStartX = 0;
-    let offsetStartY = 0;
-
-    stampBox.onmousedown = (e) => {
-      isDraggingStamp = true;
-      offsetStartX = e.clientX - stampBox.offsetLeft;
-      offsetStartY = e.clientY - stampBox.offsetTop;
-    };
-
-    window.onmousemove = (e) => {
-      if (!isDraggingStamp) return;
-      let newX = e.clientX - offsetStartX;
-      let newY = e.clientY - offsetStartY;
-      newX = Math.max(0, Math.min(newX, bgCanvas.width - stampBox.offsetWidth));
-      newY = Math.max(0, Math.min(newY, bgCanvas.height - stampBox.offsetHeight));
-      stampBox.style.left = `${newX}px`;
-      stampBox.style.top = `${newY}px`;
-      sigPos.x = newX;
-      sigPos.y = newY;
-    };
-
-    window.onmouseup = () => (isDraggingStamp = false);
-
-    // Page navigation in sign view
-    bodyEl.querySelector('#sig-page-lbl').textContent = `${currentPage} / ${totalPages}`;
-    bodyEl.querySelector('#btn-sig-prev-p').onclick = async () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderPlacementSection();
-      }
-    };
-    bodyEl.querySelector('#btn-sig-next-p').onclick = async () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        renderPlacementSection();
-      }
-    };
-  }
-
-  // Burn signature into PDF
-  btnBurn.onclick = async () => {
-    btnBurn.disabled = true;
-    btnBurn.textContent = t('common.processing');
-
-    try {
-      const buffer = await fileToArrayBuffer(activeFile);
-      const pdfDoc = await loadPdfLibDoc(buffer);
-
-      const page = pdfDoc.getPage(currentPage - 1);
-      const { width: pageWidth, height: pageHeight } = page.getSize();
-      const bgCanvas = bodyEl.querySelector('#sig-page-bg');
-
-      // Calculate relative position and scale
-      const scaleX = pageWidth / bgCanvas.width;
-      const scaleY = pageHeight / bgCanvas.height;
-
-      const pdfX = sigPos.x * scaleX;
-      // In PDF, origin (0,0) is bottom-left
-      const pdfY = (bgCanvas.height - (sigPos.y + sigPos.height)) * scaleY;
-      const pdfWidth = sigPos.width * scaleX;
-      const pdfHeight = sigPos.height * scaleY;
-
-      // Embed signature image PNG
-      const bin = atob(signatureDataUrl.split(',')[1]);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-
-      const sigImg = await pdfDoc.embedPng(bytes);
-      page.drawImage(sigImg, {
-        x: pdfX,
-        y: pdfY,
-        width: pdfWidth,
-        height: pdfHeight,
-      });
-
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `DocuMaster_Signed_${activeFile.name}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      confetti({ particleCount: 75, spread: 65 });
-      close();
-    } catch (err) {
-      console.error('Error burning signature:', err);
-      alert('Errore firma: ' + err.message);
-      btnBurn.disabled = false;
-      btnBurn.textContent = 'Riprova';
+  loadPdfInto(m, initialFile, async (file, pdfJsDoc) => {
+    let signature = await askSignature();
+    if (!signature) {
+      m.close();
+      return;
     }
-  };
+    let sigImg = await loadImageBitmap(await (await fetch(signature)).blob());
+    // Riquadro della firma in frazioni della pagina; la larghezza iniziale è il 30% della pagina
+    const box = { fx: 0.55, fy: 0.78, fw: 0.3, ratio: sigImg.height / sigImg.width, page: 1 };
 
-  function close() {
-    modalEl.classList.remove('active');
-    setTimeout(() => {
-      modalEl.remove();
-      if (onClose) onClose();
-    }, 250);
-  }
+    const bar = document.createElement('div');
+    bar.className = 'editor-toolbar';
+    bar.innerHTML = `
+      <p class="muted-text">${escapeHtml(t('signature.placeHint'))}</p>
+      <div class="tool-group">
+        <button class="btn btn-secondary btn-sm" id="sig-change">${escapeHtml(t('signature.change'))}</button>
+        <label class="check-row"><input type="checkbox" id="sig-all" /> <span>${escapeHtml(t('signature.allPages'))}</span></label>
+      </div>`;
+    m.body.appendChild(bar);
 
-  btnClose.onclick = close;
-  btnCancel.onclick = close;
+    const el = document.createElement('div');
+    el.className = 'sig-box';
+    el.innerHTML = `<img alt="" draggable="false" /><span class="sig-resize" aria-hidden="true"></span>`;
+    el.querySelector('img').src = signature;
 
-  if (activeFile) {
-    initSignFlow();
-  } else {
-    bindUploadEvents();
-  }
+    const view = createPageView(m.body, pdfJsDoc, {
+      onPageRendered: (v) => {
+        if (!el.isConnected) v.overlay.appendChild(el);
+        box.page = v.pageNum;
+        layout();
+      },
+    });
+
+    function layout() {
+      const W = view.width;
+      const H = view.height;
+      const w = box.fw * W;
+      const h = w * box.ratio;
+      box.fx = Math.max(0, Math.min(1 - box.fw, box.fx));
+      box.fy = Math.max(0, Math.min(1 - h / H, box.fy));
+      Object.assign(el.style, { left: `${box.fx * W}px`, top: `${box.fy * H}px`, width: `${w}px`, height: `${h}px` });
+    }
+
+    let start = null;
+    makeDraggable(el, {
+      onStart: () => (start = { ...box }),
+      onMove: (dx, dy) => {
+        box.fx = start.fx + dx / view.width;
+        box.fy = start.fy + dy / view.height;
+        layout();
+      },
+    });
+    makeDraggable(el.querySelector('.sig-resize'), {
+      onStart: () => (start = { ...box }),
+      onMove: (dx) => {
+        box.fw = Math.max(0.06, Math.min(0.95, start.fw + dx / view.width));
+        layout();
+      },
+    });
+
+    bar.querySelector('#sig-change').addEventListener('click', async () => {
+      const next = await askSignature();
+      if (!next) return;
+      signature = next;
+      sigImg = await loadImageBitmap(await (await fetch(signature)).blob());
+      box.ratio = sigImg.height / sigImg.width;
+      el.querySelector('img').src = signature;
+      layout();
+    });
+
+    const cancel = button(t('common.cancel'));
+    const save = button(t('actions.sign'), { variant: 'success' });
+    cancel.onclick = () => m.requestClose();
+    m.footer.append(cancel, save);
+
+    save.onclick = async () => {
+      setButtonBusy(save, true, t('common.processing'));
+      try {
+        const doc = await PDFDocument.load(await readBytes(file), { updateMetadata: false });
+        const png = await doc.embedPng(await readBytes(await (await fetch(signature)).blob()));
+        const all = m.body.querySelector('#sig-all').checked;
+        const pages = all ? [...Array(view.total).keys()].map((i) => i + 1) : [box.page];
+        for (const n of pages) {
+          const vp = await view.getViewport1(n);
+          const w = box.fw * vp.width;
+          const rect = { x: box.fx * vp.width, y: box.fy * vp.height, width: w, height: w * box.ratio };
+          doc.getPage(n - 1).drawImage(png, viewportRectToPdf(vp, rect));
+        }
+        const blob = pdfBlob(await doc.save());
+        m.close();
+        showResult({ blob, filename: `${baseName(file.name)}_signed.pdf` });
+      } catch (err) {
+        showError(err);
+        setButtonBusy(save, false, t('actions.sign'));
+      }
+    };
+  });
+  return m;
 }

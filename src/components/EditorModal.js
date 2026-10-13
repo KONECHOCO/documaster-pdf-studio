@@ -1,486 +1,278 @@
-// Visual Interactive PDF Editor & Annotator
-import { t } from '../i18n/translations.js';
-import { fileToArrayBuffer, loadPdfJsDoc, renderPageToCanvas, loadPdfLibDoc } from '../utils/pdfHelper.js';
-import { rgb, degrees, StandardFonts } from 'pdf-lib';
-import confetti from 'canvas-confetti';
+// Editor visivo: penna, evidenziatore, testo, rettangoli, linee, timbri. Funziona con dito, penna e mouse.
+// Testi salvati come testo vero (ricercabile); disegni come livello trasparente ad alta risoluzione.
+import { PDFDocument, rgb } from 'pdf-lib';
+import { t } from '../i18n/index.js';
+import { getTool } from '../tools.js';
+import { openModal, button, setButtonBusy, showResult, showError, prompt, confirmDialog, toast, escapeHtml, ICONS } from './ui.js';
+import { createPageView, loadPdfInto } from './pageView.js';
+import { readBytes, pdfBlob, baseName, drawOverlayOnPage, canvasToBlob } from '../utils/pdfHelper.js';
+import { embedTextFont } from '../utils/fonts.js';
+import { viewportPointToPdf } from '../utils/geometry.js';
 
-export function openEditorModal(initialFile = null, onClose) {
-  let activeFile = initialFile;
-  let pdfJsDoc = null;
-  let currentPage = 1;
-  let totalPages = 1;
-  let activeTool = 'pen'; // 'pen', 'highlighter', 'text', 'rect', 'stamp'
-  let strokeColor = '#ef4444';
-  let strokeWidth = 3;
-  let currentStamp = 'APPROVATO';
-  let annotationsPerPage = {}; // pageNum -> array of action objects
+const COLORS = ['#e11d48', '#2563eb', '#16a34a', '#111827', '#f59e0b', '#7c3aed'];
+const HIGHLIGHT = '#facc15';
 
-  const modalEl = document.createElement('div');
-  modalEl.className = 'modal-overlay active';
-  modalEl.innerHTML = `
-    <div class="modal-content" style="max-width: 1040px; height: 94vh;">
-      <div class="modal-header">
-        <div class="modal-title-group">
-          <div class="modal-title-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-          </div>
-          <div>
-            <h3 class="modal-title">${t('toolDetails.editorTitle')}</h3>
-            <p class="modal-subtitle">${t('toolDetails.editorDesc')}</p>
-          </div>
-        </div>
-        <button class="close-modal-btn" id="btn-close-editor">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
+function hexToRgb01(hex) {
+  const h = hex.replace('#', '');
+  return rgb(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255);
+}
 
-      <div class="modal-body" id="editor-modal-body" style="display:flex; flex-direction:column; padding:1rem;">
-        ${!activeFile ? `
-          <div class="dropzone" id="editor-dropzone">
-            <input type="file" id="editor-file-input" accept="application/pdf" style="display:none;" />
-            <div class="dropzone-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-            </div>
-            <p class="dropzone-prompt">${t('common.uploadPrompt')}</p>
-            <button class="btn btn-secondary" style="margin-top:0.85rem;" onclick="document.getElementById('editor-file-input').click()">
-              ${t('common.browseFiles')}
-            </button>
-          </div>
-        ` : `
-          <div style="text-align:center; padding:3rem 0; color:var(--text-muted);">
-            Caricamento visuale documento in corso...
-          </div>
-        `}
-      </div>
-
-      <div class="modal-footer">
-        <div style="margin-right:auto; display:flex; align-items:center; gap:0.5rem;" id="page-nav-bar" style="display:none;">
-          <button class="btn btn-secondary" id="btn-prev-page" style="padding:0.35rem 0.7rem; font-size:0.8rem;">◀</button>
-          <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="page-indicator">1 / 1</span>
-          <button class="btn btn-secondary" id="btn-next-page" style="padding:0.35rem 0.7rem; font-size:0.8rem;">▶</button>
-        </div>
-        <button class="btn btn-secondary" id="btn-cancel-editor">${t('common.cancel')}</button>
-        <button class="btn btn-success" id="btn-save-editor" disabled>
-          ${t('toolDetails.applyEditor')}
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modalEl);
-
-  const bodyEl = modalEl.querySelector('#editor-modal-body');
-  const btnClose = modalEl.querySelector('#btn-close-editor');
-  const btnCancel = modalEl.querySelector('#btn-cancel-editor');
-  const btnSave = modalEl.querySelector('#btn-save-editor');
-  const pageNavBar = modalEl.querySelector('#page-nav-bar');
-  const pageIndicator = modalEl.querySelector('#page-indicator');
-  const btnPrevPage = modalEl.querySelector('#btn-prev-page');
-  const btnNextPage = modalEl.querySelector('#btn-next-page');
-
-  function bindUploadEvents() {
-    const dropzone = modalEl.querySelector('#editor-dropzone');
-    const fileInput = modalEl.querySelector('#editor-file-input');
-    if (!dropzone || !fileInput) return;
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        activeFile = e.target.files[0];
-        initEditor();
+/** Disegna le annotazioni (non testuali) su un contesto di dimensioni W×H. */
+function paint(ctx, W, H, items, { includeText = true } = {}) {
+  ctx.clearRect(0, 0, W, H);
+  for (const it of items) {
+    ctx.save();
+    if (it.type === 'pen' || it.type === 'highlighter') {
+      if (it.points.length < 2) {
+        ctx.restore();
+        continue;
       }
-    });
-
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.classList.add('dragover');
-    });
-    dropzone.addEventListener('dragleave', () => {
-      dropzone.classList.remove('dragover');
-    });
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        activeFile = e.dataTransfer.files[0];
-        initEditor();
+      ctx.strokeStyle = it.color;
+      ctx.lineWidth = it.width * W;
+      ctx.globalAlpha = it.type === 'highlighter' ? 0.35 : 1;
+      ctx.lineCap = it.type === 'highlighter' ? 'butt' : 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(it.points[0].fx * W, it.points[0].fy * H);
+      for (const p of it.points.slice(1)) ctx.lineTo(p.fx * W, p.fy * H);
+      ctx.stroke();
+    } else if (it.type === 'rect' || it.type === 'line') {
+      ctx.strokeStyle = it.color;
+      ctx.lineWidth = it.width * W;
+      ctx.lineCap = 'round';
+      if (it.type === 'rect') {
+        ctx.strokeRect(it.x1 * W, it.y1 * H, (it.x2 - it.x1) * W, (it.y2 - it.y1) * H);
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(it.x1 * W, it.y1 * H);
+        ctx.lineTo(it.x2 * W, it.y2 * H);
+        ctx.stroke();
       }
-    });
-  }
-
-  async function initEditor() {
-    try {
-      const buffer = await fileToArrayBuffer(activeFile);
-      pdfJsDoc = await loadPdfJsDoc(buffer);
-      totalPages = pdfJsDoc.numPages;
-      currentPage = 1;
-      buildEditorUI();
-      renderPage();
-    } catch (err) {
-      console.error('Error initializing editor:', err);
-      bodyEl.innerHTML = `<div style="color:var(--danger); text-align:center; padding:2rem;">Errore caricamento: ${err.message}</div>`;
+    } else if (it.type === 'stamp') {
+      const fs = it.size * W;
+      ctx.font = `800 ${fs}px Outfit, Inter, sans-serif`;
+      const tw = ctx.measureText(it.text).width;
+      const pad = fs * 0.45;
+      ctx.translate(it.fx * W, it.fy * H);
+      ctx.rotate(-0.12);
+      ctx.strokeStyle = it.color;
+      ctx.fillStyle = it.color;
+      ctx.lineWidth = fs * 0.12;
+      ctx.globalAlpha = 0.9;
+      ctx.strokeRect(-tw / 2 - pad, -fs / 2 - pad * 0.8, tw + pad * 2, fs + pad * 1.6);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(it.text, 0, fs * 0.05);
+    } else if (it.type === 'text' && includeText) {
+      ctx.fillStyle = it.color;
+      ctx.font = `${it.size * W}px Inter, sans-serif`;
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(it.text, it.fx * W, it.fy * H);
     }
+    ctx.restore();
   }
+}
 
-  function buildEditorUI() {
-    pageNavBar.style.display = 'flex';
-    btnSave.disabled = false;
+export function openEditorModal(initialFile = null) {
+  const tool = getTool('edit');
+  let dirty = false;
+  const m = openModal({
+    title: t('tools.edit.title'),
+    subtitle: t('tools.edit.desc'),
+    icon: tool.icon,
+    color: tool.color,
+    size: 'xl',
+    confirmClose: () => (dirty ? confirmDialog({ title: t('common.discardTitle'), message: t('common.discardMessage'), okLabel: t('common.discard'), danger: true }) : true),
+  });
 
-    bodyEl.innerHTML = `
-      <!-- Toolbar -->
-      <div class="editor-toolbar">
-        <button class="editor-tool-btn active" data-tool="pen">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          ${t('toolDetails.toolDraw')}
-        </button>
+  loadPdfInto(m, initialFile, (file, pdfJsDoc) => {
+    let activeTool = 'pen';
+    let color = COLORS[0];
+    let widthPt = 2;
+    const annotations = {}; // pageNum -> items
+    const history = []; // pageNum degli elementi aggiunti, per Annulla
 
-        <button class="editor-tool-btn" data-tool="highlighter">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 11-6 6v3h3l6-6"/><path d="m22 2-7 7"/></svg>
-          ${t('toolDetails.toolHighlight')}
-        </button>
-
-        <button class="editor-tool-btn" data-tool="text">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-          ${t('toolDetails.toolText')}
-        </button>
-
-        <button class="editor-tool-btn" data-tool="rect">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-          ${t('toolDetails.toolShape')}
-        </button>
-
-        <!-- Stamp Selector -->
-        <div style="display:flex; align-items:center; gap:0.35rem; margin-left:0.5rem;">
-          <select id="stamp-selector" class="lang-select" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
-            <option value="APPROVATO">APPROVATO</option>
-            <option value="CONFIDENZIALE">CONFIDENZIALE</option>
-            <option value="BOZZA">BOZZA</option>
-            <option value="PAGATO">PAGATO</option>
-            <option value="URGENTE">URGENTE</option>
-          </select>
-          <button class="editor-tool-btn" data-tool="stamp">
-            Timbro
-          </button>
-        </div>
-
-        <!-- Color & Width Controls -->
-        <div style="display:flex; align-items:center; gap:0.5rem; margin-left:auto;">
-          <input type="color" id="editor-color-picker" value="${strokeColor}" style="width:28px; height:28px; border:none; background:none; cursor:pointer;" />
-          <button class="btn btn-secondary" id="btn-clear-page" style="padding:0.35rem 0.65rem; font-size:0.75rem;">
-            Cancella
-          </button>
-        </div>
+    const stamps = t('editor.stamps');
+    const toolbar = document.createElement('div');
+    toolbar.className = 'editor-toolbar';
+    toolbar.innerHTML = `
+      <div class="tool-group">
+        ${['pen', 'highlighter', 'text', 'rect', 'line', 'stamp']
+          .map((id) => `<button class="editor-tool-btn ${id === activeTool ? 'active' : ''}" data-tool="${id}">${escapeHtml(t(`editor.${id}`))}</button>`)
+          .join('')}
       </div>
+      <div class="tool-group">
+        <select class="select-input select-sm" id="stamp-text" hidden>${stamps.map((s) => `<option>${escapeHtml(s)}</option>`).join('')}</select>
+        <div class="swatches">${COLORS.map((c, i) => `<button class="swatch ${i === 0 ? 'active' : ''}" data-color="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>
+        <select class="select-input select-sm" id="stroke-width" aria-label="${escapeHtml(t('editor.thickness'))}">
+          <option value="1">${escapeHtml(t('editor.thin'))}</option>
+          <option value="2" selected>${escapeHtml(t('editor.medium'))}</option>
+          <option value="4">${escapeHtml(t('editor.thick'))}</option>
+        </select>
+        <button class="icon-btn" id="btn-undo" aria-label="${escapeHtml(t('editor.undo'))}" title="${escapeHtml(t('editor.undo'))}">${ICONS.undo}</button>
+      </div>`;
+    m.body.appendChild(toolbar);
+    const hint = document.createElement('p');
+    hint.className = 'muted-text editor-hint';
+    m.body.appendChild(hint);
 
-      <!-- Canvas Viewport -->
-      <div class="editor-viewport" id="editor-viewport">
-        <div style="position:relative;" id="canvas-container">
-          <canvas id="pdf-base-canvas" class="editor-canvas-layer"></canvas>
-          <canvas id="pdf-draw-canvas" style="position:absolute; top:0; left:0; pointer-events:auto; cursor:crosshair;"></canvas>
-        </div>
-      </div>
-    `;
+    const drawCanvas = document.createElement('canvas');
+    drawCanvas.className = 'draw-layer';
 
-    // Bind Tool switching
-    const toolBtns = bodyEl.querySelectorAll('.editor-tool-btn');
-    toolBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        toolBtns.forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        activeTool = btn.getAttribute('data-tool');
-      });
+    const view = createPageView(m.body, pdfJsDoc, {
+      onPageRendered: (v) => {
+        if (!drawCanvas.isConnected) v.overlay.appendChild(drawCanvas);
+        redraw();
+      },
     });
 
-    const stampSelect = bodyEl.querySelector('#stamp-selector');
-    stampSelect.addEventListener('change', (e) => {
-      currentStamp = e.target.value;
-    });
+    function items() {
+      return (annotations[view.pageNum] ||= []);
+    }
 
-    const colorPicker = bodyEl.querySelector('#editor-color-picker');
-    colorPicker.addEventListener('input', (e) => {
-      strokeColor = e.target.value;
-    });
-
-    bodyEl.querySelector('#btn-clear-page').addEventListener('click', () => {
-      annotationsPerPage[currentPage] = [];
-      const drawCanvas = bodyEl.querySelector('#pdf-draw-canvas');
+    function redraw(extra) {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      const W = view.width;
+      const H = view.height;
+      if (!W || !H) return;
+      drawCanvas.width = Math.round(W * dpr);
+      drawCanvas.height = Math.round(H * dpr);
+      drawCanvas.style.width = `${W}px`;
+      drawCanvas.style.height = `${H}px`;
       const ctx = drawCanvas.getContext('2d');
-      ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paint(ctx, W, H, extra ? [...items(), extra] : items());
+    }
+
+    function updateHint() {
+      hint.textContent = t(`editor.hint_${activeTool}`);
+      toolbar.querySelector('#stamp-text').hidden = activeTool !== 'stamp';
+    }
+    updateHint();
+
+    toolbar.querySelectorAll('[data-tool]').forEach((b) =>
+      b.addEventListener('click', () => {
+        toolbar.querySelectorAll('[data-tool]').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+        activeTool = b.dataset.tool;
+        updateHint();
+      })
+    );
+    toolbar.querySelectorAll('[data-color]').forEach((b) =>
+      b.addEventListener('click', () => {
+        toolbar.querySelectorAll('[data-color]').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+        color = b.dataset.color;
+      })
+    );
+    toolbar.querySelector('#stroke-width').addEventListener('change', (e) => (widthPt = parseFloat(e.target.value)));
+    toolbar.querySelector('#btn-undo').addEventListener('click', () => {
+      const pageNum = history.pop();
+      if (!pageNum) return;
+      annotations[pageNum]?.pop();
+      if (pageNum !== view.pageNum) view.goTo(pageNum);
+      else redraw();
     });
-  }
 
-  async function renderPage() {
-    pageIndicator.textContent = `${t('common.page')} ${currentPage} ${t('common.of')} ${totalPages}`;
-    btnPrevPage.disabled = currentPage <= 1;
-    btnNextPage.disabled = currentPage >= totalPages;
-
-    const baseCanvas = bodyEl.querySelector('#pdf-base-canvas');
-    const drawCanvas = bodyEl.querySelector('#pdf-draw-canvas');
-    if (!baseCanvas || !drawCanvas) return;
-
-    // Render underlying PDF page
-    const { canvas: rendered } = await renderPageToCanvas(pdfJsDoc, currentPage, 1.35);
-    baseCanvas.width = rendered.width;
-    baseCanvas.height = rendered.height;
-    const baseCtx = baseCanvas.getContext('2d');
-    baseCtx.drawImage(rendered, 0, 0);
-
-    // Setup drawing canvas overlay
-    drawCanvas.width = rendered.width;
-    drawCanvas.height = rendered.height;
-    const drawCtx = drawCanvas.getContext('2d');
-    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-
-    // Replay any existing annotations for this page
-    if (annotationsPerPage[currentPage]) {
-      redrawAnnotations(drawCtx, annotationsPerPage[currentPage]);
+    async function add(item) {
+      items().push(item);
+      history.push(view.pageNum);
+      dirty = true;
+      redraw();
     }
 
-    bindDrawingEvents(drawCanvas, drawCtx);
-  }
-
-  function bindDrawingEvents(drawCanvas, ctx) {
-    let isDrawing = false;
-    let startX = 0;
-    let startY = 0;
-    let currentPath = [];
-
-    if (!annotationsPerPage[currentPage]) {
-      annotationsPerPage[currentPage] = [];
-    }
-
-    drawCanvas.onmousedown = (e) => {
-      const rect = drawCanvas.getBoundingClientRect();
-      startX = e.clientX - rect.left;
-      startY = e.clientY - rect.top;
-      isDrawing = true;
-
+    // Disegno con pointer events: dito, penna e mouse
+    drawCanvas.style.touchAction = 'none';
+    let current = null;
+    drawCanvas.addEventListener('pointerdown', async (e) => {
+      if (e.button > 0) return;
+      const vp = await view.getViewport1(view.pageNum);
+      const { fx, fy } = view.toFraction(e);
+      const lineW = (activeTool === 'highlighter' ? 14 : widthPt) / vp.width;
+      if (activeTool === 'text') {
+        const text = await prompt({ title: t('editor.addText'), placeholder: t('editor.textPlaceholder') });
+        if (text && text.trim()) add({ type: 'text', text: text.trim(), fx, fy, size: 14 / vp.width, color });
+        return;
+      }
+      if (activeTool === 'stamp') {
+        add({ type: 'stamp', text: toolbar.querySelector('#stamp-text').value, fx, fy, size: 20 / vp.width, color });
+        return;
+      }
+      e.preventDefault();
+      drawCanvas.setPointerCapture(e.pointerId);
       if (activeTool === 'pen' || activeTool === 'highlighter') {
-        currentPath = [{ x: startX, y: startY }];
-      } else if (activeTool === 'text') {
-        const text = prompt('Inserisci testo da aggiungere sul PDF:');
-        if (text) {
-          annotationsPerPage[currentPage].push({
-            type: 'text',
-            text,
-            x: startX,
-            y: startY,
-            color: strokeColor,
-            size: 20,
-          });
-          redrawAnnotations(ctx, annotationsPerPage[currentPage]);
+        current = { type: activeTool, points: [{ fx, fy }], color: activeTool === 'highlighter' ? HIGHLIGHT : color, width: lineW };
+      } else {
+        current = { type: activeTool, x1: fx, y1: fy, x2: fx, y2: fy, color, width: lineW };
+      }
+    });
+    drawCanvas.addEventListener('pointermove', (e) => {
+      if (!current) return;
+      const { fx, fy } = view.toFraction(e);
+      if (current.points) current.points.push({ fx, fy });
+      else {
+        current.x2 = fx;
+        current.y2 = fy;
+      }
+      redraw(current);
+    });
+    const finish = () => {
+      if (!current) return;
+      const item = current;
+      current = null;
+      if (item.type === 'rect') {
+        [item.x1, item.x2] = [Math.min(item.x1, item.x2), Math.max(item.x1, item.x2)];
+        [item.y1, item.y2] = [Math.min(item.y1, item.y2), Math.max(item.y1, item.y2)];
+        if (item.x2 - item.x1 < 0.005 || item.y2 - item.y1 < 0.005) return redraw();
+      }
+      if (item.points && item.points.length < 2) return redraw();
+      add(item);
+    };
+    drawCanvas.addEventListener('pointerup', finish);
+    drawCanvas.addEventListener('pointercancel', finish);
+
+    const cancel = button(t('common.cancel'));
+    const save = button(t('actions.edit'), { variant: 'success' });
+    cancel.onclick = () => m.requestClose();
+    m.footer.append(cancel, save);
+
+    save.onclick = async () => {
+      const pages = Object.keys(annotations).map(Number).filter((n) => annotations[n].length);
+      if (!pages.length) {
+        toast(t('editor.nothingToSave'));
+        return;
+      }
+      setButtonBusy(save, true, t('common.processing'));
+      try {
+        const doc = await PDFDocument.load(await readBytes(file), { updateMetadata: false });
+        const allText = pages.flatMap((n) => annotations[n].filter((a) => a.type === 'text').map((a) => a.text)).join(' ');
+        const font = allText ? await embedTextFont(doc, allText) : null;
+        for (const n of pages) {
+          const vp = await view.getViewport1(n);
+          const list = annotations[n];
+          if (list.some((a) => a.type !== 'text')) {
+            const scale = 3; // ~216 dpi
+            const c = document.createElement('canvas');
+            c.width = Math.round(vp.width * scale);
+            c.height = Math.round(vp.height * scale);
+            paint(c.getContext('2d'), c.width, c.height, list, { includeText: false });
+            await drawOverlayOnPage(doc, n - 1, vp, await readBytes(await canvasToBlob(c, 'image/png')));
+          }
+          const page = doc.getPage(n - 1);
+          for (const a of list.filter((x) => x.type === 'text')) {
+            const p = viewportPointToPdf(vp, a.fx * vp.width, a.fy * vp.height);
+            page.drawText(a.text, { x: p.x, y: p.y, size: a.size * vp.width, font, color: hexToRgb01(a.color), rotate: p.rotate });
+          }
         }
-        isDrawing = false;
-      } else if (activeTool === 'stamp') {
-        annotationsPerPage[currentPage].push({
-          type: 'stamp',
-          text: currentStamp,
-          x: startX,
-          y: startY,
-        });
-        redrawAnnotations(ctx, annotationsPerPage[currentPage]);
-        isDrawing = false;
+        dirty = false;
+        const blob = pdfBlob(await doc.save());
+        m.close();
+        showResult({ blob, filename: `${baseName(file.name)}_edited.pdf` });
+      } catch (err) {
+        showError(err);
+        setButtonBusy(save, false, t('actions.edit'));
       }
     };
-
-    drawCanvas.onmousemove = (e) => {
-      if (!isDrawing) return;
-      const rect = drawCanvas.getBoundingClientRect();
-      const curX = e.clientX - rect.left;
-      const curY = e.clientY - rect.top;
-
-      if (activeTool === 'pen' || activeTool === 'highlighter') {
-        currentPath.push({ x: curX, y: curY });
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = activeTool === 'highlighter' ? 18 : strokeWidth;
-        ctx.globalAlpha = activeTool === 'highlighter' ? 0.35 : 1.0;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        ctx.beginPath();
-        const p1 = currentPath[currentPath.length - 2];
-        const p2 = currentPath[currentPath.length - 1];
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-      }
-    };
-
-    drawCanvas.onmouseup = (e) => {
-      if (!isDrawing) return;
-      isDrawing = false;
-      const rect = drawCanvas.getBoundingClientRect();
-      const endX = e.clientX - rect.left;
-      const endY = e.clientY - rect.top;
-
-      if (activeTool === 'pen' || activeTool === 'highlighter') {
-        annotationsPerPage[currentPage].push({
-          type: activeTool,
-          path: [...currentPath],
-          color: strokeColor,
-          width: activeTool === 'highlighter' ? 18 : strokeWidth,
-          opacity: activeTool === 'highlighter' ? 0.35 : 1.0,
-        });
-      } else if (activeTool === 'rect') {
-        annotationsPerPage[currentPage].push({
-          type: 'rect',
-          x: Math.min(startX, endX),
-          y: Math.min(startY, endY),
-          w: Math.abs(endX - startX),
-          h: Math.abs(endY - startY),
-          color: strokeColor,
-          width: strokeWidth,
-        });
-        redrawAnnotations(ctx, annotationsPerPage[currentPage]);
-      }
-    };
-  }
-
-  function redrawAnnotations(ctx, items) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    for (const item of items) {
-      if (item.type === 'pen' || item.type === 'highlighter') {
-        if (item.path.length < 2) continue;
-        ctx.save();
-        ctx.strokeStyle = item.color;
-        ctx.lineWidth = item.width;
-        ctx.globalAlpha = item.opacity;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(item.path[0].x, item.path[0].y);
-        for (let i = 1; i < item.path.length; i++) {
-          ctx.lineTo(item.path[i].x, item.path[i].y);
-        }
-        ctx.stroke();
-        ctx.restore();
-      } else if (item.type === 'text') {
-        ctx.save();
-        ctx.fillStyle = item.color;
-        ctx.font = `bold ${item.size}px 'Inter', sans-serif`;
-        ctx.fillText(item.text, item.x, item.y);
-        ctx.restore();
-      } else if (item.type === 'rect') {
-        ctx.save();
-        ctx.strokeStyle = item.color;
-        ctx.lineWidth = item.width;
-        ctx.strokeRect(item.x, item.y, item.w, item.h);
-        ctx.restore();
-      } else if (item.type === 'stamp') {
-        ctx.save();
-        ctx.translate(item.x, item.y);
-        ctx.rotate(-0.15);
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 3;
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
-        ctx.fillRect(0, 0, 160, 48);
-        ctx.strokeRect(0, 0, 160, 48);
-        ctx.font = `bold 16px 'Outfit', sans-serif`;
-        ctx.fillStyle = '#ef4444';
-        ctx.textAlign = 'center';
-        ctx.fillText(item.text, 80, 30);
-        ctx.restore();
-      }
-    }
-  }
-
-  btnPrevPage.addEventListener('click', () => {
-    if (currentPage > 1) {
-      currentPage--;
-      renderPage();
-    }
   });
-
-  btnNextPage.addEventListener('click', () => {
-    if (currentPage < totalPages) {
-      currentPage++;
-      renderPage();
-    }
-  });
-
-  // Save modified PDF
-  btnSave.addEventListener('click', async () => {
-    btnSave.disabled = true;
-    btnSave.textContent = t('common.processing');
-
-    try {
-      const buffer = await fileToArrayBuffer(activeFile);
-      const pdfDoc = await loadPdfLibDoc(buffer);
-
-      // Merge drawing canvas annotations into each modified page
-      for (let pNum = 1; pNum <= totalPages; pNum++) {
-        const pageAnnotations = annotationsPerPage[pNum];
-        if (!pageAnnotations || pageAnnotations.length === 0) continue;
-
-        // Render annotations to a transparent PNG canvas
-        const page = pdfDoc.getPage(pNum - 1);
-        const { width: pWidth, height: pHeight } = page.getSize();
-
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = pWidth * 2;
-        offCanvas.height = pHeight * 2;
-        const offCtx = offCanvas.getContext('2d');
-        offCtx.scale(2, 2);
-
-        redrawAnnotations(offCtx, pageAnnotations);
-
-        const pngUrl = offCanvas.toDataURL('image/png');
-        const bin = atob(pngUrl.split(',')[1]);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-
-        const embeddedPng = await pdfDoc.embedPng(bytes);
-        page.drawImage(embeddedPng, {
-          x: 0,
-          y: 0,
-          width: pWidth,
-          height: pHeight,
-        });
-      }
-
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `DocuMaster_Edited_${activeFile.name}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      confetti({ particleCount: 70, spread: 60 });
-      close();
-    } catch (err) {
-      console.error('Error saving edited PDF:', err);
-      alert('Errore salvataggio: ' + err.message);
-      btnSave.disabled = false;
-      btnSave.textContent = t('toolDetails.applyEditor');
-    }
-  });
-
-  function close() {
-    modalEl.classList.remove('active');
-    setTimeout(() => {
-      modalEl.remove();
-      if (onClose) onClose();
-    }, 250);
-  }
-
-  btnClose.addEventListener('click', close);
-  btnCancel.addEventListener('click', close);
-
-  if (activeFile) {
-    initEditor();
-  } else {
-    bindUploadEvents();
-  }
+  return m;
 }

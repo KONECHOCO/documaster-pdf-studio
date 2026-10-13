@@ -1,5 +1,19 @@
-// Dynamic Tool Modal for Merge, Split, Compress, Watermark, Convert, Protect, Text Extract
-import { t } from '../i18n/translations.js';
+// Strumenti "carica → opzioni → elabora": unisci, dividi, comprimi, ruota, filigrana, numeri di pagina,
+// conversioni, OCR, protezione, sblocco, metadati, appiattimento.
+import { t, getLanguage, formatBytes, formatNumber } from '../i18n/index.js';
+import { getTool } from '../tools.js';
+import {
+  openModal,
+  createDropzone,
+  fileRow,
+  button,
+  setButtonBusy,
+  createProgress,
+  showResult,
+  showError,
+  escapeHtml,
+  ICONS,
+} from './ui.js';
 import {
   mergePdfs,
   splitPdf,
@@ -8,439 +22,421 @@ import {
   addWatermarkToPdf,
   addPageNumbersToPdf,
   convertPdfToImages,
-  convertImagesToPdf,
+  imagesToPdfBlob,
+  imageToCanvas,
   extractTextFromPdf,
+  convertPdfToDocx,
   flattenPdf,
-  generateAllThumbnails,
+  protectPdf,
+  readMetadata,
+  writeMetadata,
+  loadPdfLibDoc,
+  baseName,
+  isPdfFile,
+  UserError,
 } from '../utils/pdfHelper.js';
-import confetti from 'canvas-confetti';
+import { ocrPdf, ocrCanvasesToPdf, OCR_LANGS } from '../utils/ocr.js';
 
-export function openGenericToolModal(toolId, initialFile = null, onClose) {
-  let selectedFiles = initialFile ? [initialFile] : [];
-  let isMultiple = toolId === 'merge' || toolId === 'imgToPdf';
-  let acceptedTypes = toolId === 'imgToPdf' ? 'image/png, image/jpeg, image/webp' : 'application/pdf';
+const MULTI = new Set(['merge', 'imgToPdf']);
+const ACCEPT = { imgToPdf: 'image', ocr: 'pdf,image' };
 
-  const modalEl = document.createElement('div');
-  modalEl.className = 'modal-overlay active';
-  modalEl.innerHTML = `
-    <div class="modal-content" style="max-width: 820px;">
-      <div class="modal-header">
-        <div class="modal-title-group">
-          <div class="modal-title-icon" style="background: var(--primary);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="2" width="16" height="20" rx="2"></rect>
-              <line x1="9" y1="10" x2="15" y2="10"></line>
-            </svg>
-          </div>
-          <div>
-            <h3 class="modal-title">${t(`tools.${toolId}.title`)}</h3>
-            <p class="modal-subtitle">${t(`tools.${toolId}.desc`)}</p>
-          </div>
-        </div>
-        <button class="close-modal-btn" id="btn-close-tool">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
+export function openGenericToolModal(toolId, initialFiles = []) {
+  const tool = getTool(toolId);
+  const multiple = MULTI.has(toolId);
+  const accept = ACCEPT[toolId] || 'pdf';
+  let files = [];
+  let pageCount = 0;
 
-      <div class="modal-body" id="tool-modal-body">
-        <!-- Dropzone -->
-        <div class="dropzone" id="tool-dropzone">
-          <input type="file" id="tool-file-input" ${isMultiple ? 'multiple' : ''} accept="${acceptedTypes}" style="display:none;" />
-          <div class="dropzone-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-          </div>
-          <p class="dropzone-prompt">${isMultiple ? t('common.uploadPromptMulti') : t('common.uploadPrompt')}</p>
-          <button class="btn btn-secondary" style="margin-top:0.85rem;" onclick="document.getElementById('tool-file-input').click()">
-            ${t('common.browseFiles')}
-          </button>
-        </div>
-
-        <!-- Selected Files List -->
-        <div class="selected-files-list" id="tool-files-list" style="display:none;"></div>
-
-        <!-- Tool Specific Settings Panel -->
-        <div id="tool-options-container" style="display:none; margin-top:1.5rem; padding:1.2rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md);">
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-cancel-tool">${t('common.cancel')}</button>
-        <button class="btn btn-success" id="btn-action-tool" disabled>
-          ${t('common.apply')}
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modalEl);
-
-  const dropzone = modalEl.querySelector('#tool-dropzone');
-  const fileInput = modalEl.querySelector('#tool-file-input');
-  const filesList = modalEl.querySelector('#tool-files-list');
-  const optionsContainer = modalEl.querySelector('#tool-options-container');
-  const btnAction = modalEl.querySelector('#btn-action-tool');
-  const btnClose = modalEl.querySelector('#btn-close-tool');
-  const btnCancel = modalEl.querySelector('#btn-cancel-tool');
-
-  fileInput.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
+  const m = openModal({
+    title: t(`tools.${toolId}.title`),
+    subtitle: t(`tools.${toolId}.desc`),
+    icon: tool.icon,
+    color: tool.color,
+    size: 'md',
   });
 
-  dropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropzone.classList.add('dragover');
-  });
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-  dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropzone.classList.remove('dragover');
-    if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
-  });
+  const dropzone = createDropzone({ accept, multiple, onFiles: addFiles });
+  const filesBox = document.createElement('div');
+  filesBox.className = 'selected-files-list';
+  const optionsBox = document.createElement('div');
+  optionsBox.className = 'options-panel';
+  optionsBox.hidden = true;
+  const progress = createProgress();
+  progress.el.hidden = true;
+  m.body.append(dropzone, filesBox, optionsBox, progress.el);
 
-  function handleFiles(files) {
-    if (!files || files.length === 0) return;
-    if (isMultiple) {
-      selectedFiles = [...selectedFiles, ...Array.from(files)];
-    } else {
-      selectedFiles = [files[0]];
+  const actionBtn = button(t(`actions.${toolId}`), { variant: 'success', disabled: true });
+  const cancelBtn = button(t('common.cancel'));
+  cancelBtn.onclick = () => m.requestClose();
+  m.footer.append(cancelBtn, actionBtn);
+
+  async function addFiles(newFiles) {
+    files = multiple ? [...files, ...newFiles] : [newFiles[0]];
+    pageCount = 0;
+    if (files.length === 1 && isPdfFile(files[0])) {
+      try {
+        pageCount = (await loadPdfLibDoc(files[0])).getPageCount();
+      } catch (err) {
+        showError(err);
+        files = [];
+      }
     }
-    renderFiles();
-    renderToolOptions();
+    if (toolId === 'unlock' && files[0] && !files[0].wasEncrypted) {
+      showError(new UserError('errors.notEncrypted'));
+      files = [];
+    }
+    render();
   }
 
-  function renderFiles() {
-    if (selectedFiles.length === 0) {
-      filesList.style.display = 'none';
-      btnAction.disabled = true;
-      return;
-    }
-
-    filesList.style.display = 'flex';
-    btnAction.disabled = false;
-    filesList.innerHTML = '';
-
-    selectedFiles.forEach((file, index) => {
-      const row = document.createElement('div');
-      row.className = 'file-row';
-      const sizeKB = Math.round(file.size / 1024);
-      row.innerHTML = `
-        <div class="file-info">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--primary);">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          </svg>
-          <div>
-            <div class="file-name">${file.name}</div>
-            <div class="file-size">${sizeKB} KB</div>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:0.4rem;">
-          ${isMultiple && index > 0 ? `<button class="btn" style="padding:2px 6px; font-size:0.75rem; background:none; border:1px solid var(--border-color);" data-move="up">▲</button>` : ''}
-          ${isMultiple && index < selectedFiles.length - 1 ? `<button class="btn" style="padding:2px 6px; font-size:0.75rem; background:none; border:1px solid var(--border-color);" data-move="down">▼</button>` : ''}
-          <button class="btn btn-danger" style="padding:2px 6px; font-size:0.75rem;" data-remove="${index}">×</button>
-        </div>
-      `;
-
-      if (row.querySelector('[data-move="up"]')) {
-        row.querySelector('[data-move="up"]').onclick = () => {
-          const t = selectedFiles[index - 1];
-          selectedFiles[index - 1] = selectedFiles[index];
-          selectedFiles[index] = t;
-          renderFiles();
-        };
+  function render() {
+    dropzone.classList.toggle('dropzone-compact', files.length > 0);
+    dropzone.hidden = files.length > 0 && !multiple;
+    filesBox.innerHTML = '';
+    files.forEach((file, index) => {
+      const actions = `
+        ${multiple && index > 0 ? `<button class="icon-btn" data-act="up" aria-label="${escapeHtml(t('common.moveUp'))}">${ICONS.up}</button>` : ''}
+        ${multiple && index < files.length - 1 ? `<button class="icon-btn" data-act="down" aria-label="${escapeHtml(t('common.moveDown'))}">${ICONS.down}</button>` : ''}
+        <button class="icon-btn danger" data-act="remove" aria-label="${escapeHtml(t('common.remove'))}">${ICONS.trash}</button>`;
+      const row = fileRow(file, actions);
+      if (!multiple && pageCount) {
+        row.querySelector('.file-size').textContent = `${formatBytes(file.size)} · ${t('common.pagesCount', { n: pageCount })}`;
       }
-      if (row.querySelector('[data-move="down"]')) {
-        row.querySelector('[data-move="down"]').onclick = () => {
-          const t = selectedFiles[index + 1];
-          selectedFiles[index + 1] = selectedFiles[index];
-          selectedFiles[index] = t;
-          renderFiles();
-        };
-      }
-      row.querySelector('[data-remove]').onclick = () => {
-        selectedFiles.splice(index, 1);
-        renderFiles();
-      };
-
-      filesList.appendChild(row);
-    });
-  }
-
-  function renderToolOptions() {
-    optionsContainer.style.display = 'block';
-
-    if (toolId === 'compress') {
-      const origKB = Math.round(selectedFiles[0].size / 1024);
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('toolDetails.compressDesc')}</h4>
-        <div style="display:flex; flex-direction:column; gap:0.6rem;">
-          <label style="display:flex; align-items:center; gap:0.6rem; font-size:0.88rem; cursor:pointer;">
-            <input type="radio" name="comp-level" value="recommended" checked />
-            <span><strong>${t('toolDetails.compressRecommended')}</strong> (Risparmio stimato ~50%)</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:0.6rem; font-size:0.88rem; cursor:pointer;">
-            <input type="radio" name="comp-level" value="extreme" />
-            <span><strong>${t('toolDetails.compressExtreme')}</strong> (Risparmio stimato ~70%)</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:0.6rem; font-size:0.88rem; cursor:pointer;">
-            <input type="radio" name="comp-level" value="low" />
-            <span><strong>${t('toolDetails.compressLow')}</strong> (Alta qualità visiva)</span>
-          </label>
-        </div>
-        <div style="margin-top:1rem; font-size:0.82rem; color:var(--text-secondary);">
-          ${t('toolDetails.originalSize')} <strong>${origKB} KB</strong>
-        </div>
-      `;
-    } else if (toolId === 'split') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('toolDetails.splitDesc')}</h4>
-        <div style="display:flex; flex-direction:column; gap:0.75rem;">
-          <label style="font-size:0.85rem; color:var(--text-secondary);">${t('toolDetails.splitModeRange')}:</label>
-          <input type="text" id="split-range-input" class="search-input" placeholder="es: 1-3, 5" value="1" style="padding-left:1.25rem;" />
-        </div>
-      `;
-    } else if (toolId === 'rotate') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">Scegli Angolo di Rotazione:</h4>
-        <div style="display:flex; gap:0.75rem;">
-          <button class="btn btn-secondary active-rot" data-angle="90">Ruota 90° Orario</button>
-          <button class="btn btn-secondary" data-angle="180">Ruota 180°</button>
-          <button class="btn btn-secondary" data-angle="270">Ruota 90° Antiorario</button>
-        </div>
-      `;
-      const rotBtns = optionsContainer.querySelectorAll('button[data-angle]');
-      rotBtns.forEach((b) => {
-        b.onclick = () => {
-          rotBtns.forEach((ob) => ob.classList.remove('btn-primary'));
-          b.classList.add('btn-primary');
-          optionsContainer.dataset.selectedAngle = b.dataset.angle;
-        };
+      row.querySelector('[data-act="up"]')?.addEventListener('click', () => {
+        [files[index - 1], files[index]] = [files[index], files[index - 1]];
+        render();
       });
-      rotBtns[0].click();
-    } else if (toolId === 'watermark') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('toolDetails.watermarkTitle')}</h4>
-        <div style="display:flex; flex-direction:column; gap:0.75rem;">
-          <div>
-            <label style="font-size:0.82rem; color:var(--text-muted);">${t('toolDetails.watermarkText')}</label>
-            <input type="text" id="wm-text" class="search-input" value="CONFIDENTIAL" style="padding-left:1.25rem;" />
+      row.querySelector('[data-act="down"]')?.addEventListener('click', () => {
+        [files[index + 1], files[index]] = [files[index], files[index + 1]];
+        render();
+      });
+      row.querySelector('[data-act="remove"]').addEventListener('click', () => {
+        files.splice(index, 1);
+        render();
+      });
+      filesBox.appendChild(row);
+    });
+    const ready = toolId === 'merge' ? files.length >= 2 : files.length > 0;
+    actionBtn.disabled = !ready;
+    if (toolId === 'merge' && files.length === 1) {
+      const hint = document.createElement('p');
+      hint.className = 'muted-text';
+      hint.textContent = t('opts.mergeHint');
+      filesBox.appendChild(hint);
+    }
+    renderOptions();
+  }
+
+  // ------------------------------------------------------------ Opzioni per strumento
+
+  const field = (label, control, hint = '') => `
+    <label class="field"><span class="field-label">${escapeHtml(label)}</span>${control}${hint ? `<span class="field-hint">${escapeHtml(hint)}</span>` : ''}</label>`;
+  const select = (id, options, value) =>
+    `<select id="${id}" class="select-input">${options.map(([v, l]) => `<option value="${escapeHtml(v)}" ${String(v) === String(value) ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}</select>`;
+  const radios = (name, options, value) =>
+    `<div class="radio-list">${options
+      .map(
+        ([v, l, d]) => `
+      <label class="radio-card"><input type="radio" name="${name}" value="${v}" ${v === value ? 'checked' : ''}/>
+        <span><strong>${escapeHtml(l)}</strong>${d ? `<small>${escapeHtml(d)}</small>` : ''}</span></label>`
+      )
+      .join('')}</div>`;
+  const rangeInput = (id, placeholder) =>
+    `<input id="${id}" class="text-input" inputmode="numeric" autocomplete="off" placeholder="${escapeHtml(placeholder)}" />`;
+
+  let optionsRendered = false;
+  function renderOptions() {
+    const visible = files.length > 0;
+    optionsBox.hidden = !visible;
+    if (!visible || optionsRendered) return;
+    optionsRendered = true;
+    const pages = pageCount ? t('opts.allPagesHint', { n: pageCount }) : '';
+    let html = '';
+
+    switch (toolId) {
+      case 'split':
+        html =
+          radios(
+            'split-mode',
+            [
+              ['range', t('opts.splitRange'), t('opts.splitRangeDesc')],
+              ['each', t('opts.splitEach'), t('opts.splitEachDesc')],
+              ['chunks', t('opts.splitChunks'), t('opts.splitChunksDesc')],
+            ],
+            'range'
+          ) +
+          `<div class="field-row">
+            ${field(t('opts.pages'), rangeInput('split-range', '1-3, 5'), pages)}
+            ${field(t('opts.chunkSize'), '<input id="split-chunk" class="text-input" type="number" min="1" value="2" />')}
+          </div>`;
+        break;
+      case 'compress':
+        html = radios(
+          'comp-level',
+          [
+            ['recommended', t('opts.compRecommended'), t('opts.compRecommendedDesc')],
+            ['extreme', t('opts.compExtreme'), t('opts.compExtremeDesc')],
+            ['low', t('opts.compLow'), t('opts.compLowDesc')],
+          ],
+          'recommended'
+        );
+        break;
+      case 'rotate':
+        html = `<div class="segmented" id="rot-angle">
+            <button type="button" data-angle="90" class="active">↻ 90°</button>
+            <button type="button" data-angle="180">180°</button>
+            <button type="button" data-angle="270">↺ 90°</button>
           </div>
-          <div style="display:flex; gap:1rem; align-items:center;">
-            <div>
-              <label style="font-size:0.82rem; color:var(--text-muted);">${t('toolDetails.watermarkOpacity')}</label>
-              <input type="range" id="wm-opacity" min="0.1" max="0.9" step="0.05" value="0.25" style="width:140px;" />
-            </div>
-            <div>
-              <label style="font-size:0.82rem; color:var(--text-muted);">${t('toolDetails.watermarkRotation')}</label>
-              <select id="wm-rotation" class="lang-select">
-                <option value="45">45° Diagonale</option>
-                <option value="0">0° Orizzontale</option>
-                <option value="-45">-45° Diagonale</option>
-              </select>
-            </div>
+          ${field(t('opts.pagesOptional'), rangeInput('rot-range', t('opts.allPages')), pages)}`;
+        break;
+      case 'watermark':
+        html = `${field(t('opts.wmText'), `<input id="wm-text" class="text-input" value="${escapeHtml(t('opts.wmDefault'))}" maxlength="80" />`)}
+          <div class="field-row">
+            ${field(t('opts.wmLayout'), select('wm-layout', [['center', t('opts.wmCenter')], ['tile', t('opts.wmTile')]], 'center'))}
+            ${field(t('opts.wmAngle'), select('wm-angle', [['45', '45°'], ['0', '0°'], ['-45', '-45°'], ['90', '90°']], '45'))}
           </div>
-        </div>
-      `;
-    } else if (toolId === 'pageNumbers') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('toolDetails.pageNumbersTitle')}</h4>
-        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-          <div>
-            <label style="font-size:0.82rem; color:var(--text-muted);">${t('toolDetails.pnFormat')}</label>
-            <select id="pn-format" class="lang-select">
-              <option value="Pagina {n} di {total}">Pagina {n} di {total}</option>
-              <option value="{n} / {total}">{n} / {total}</option>
-              <option value="{n}">{n}</option>
-            </select>
+          <div class="field-row">
+            ${field(t('opts.wmSize'), select('wm-size', [['32', 'S'], ['48', 'M'], ['72', 'L'], ['100', 'XL']], '48'))}
+            ${field(t('opts.wmOpacity'), '<input id="wm-opacity" type="range" min="0.05" max="0.9" step="0.05" value="0.25" />')}
+            ${field(t('opts.color'), '<input id="wm-color" type="color" value="#808080" class="color-input" />')}
+          </div>`;
+        break;
+      case 'pageNumbers':
+        html = `<div class="field-row">
+            ${field(t('opts.pnFormat'), select('pn-format', [['{n}', '1'], ['{n} / {total}', '1 / 9'], [t('opts.pnPageOf'), t('opts.pnPageOf').replace('{n}', '1').replace('{total}', '9')], ['- {n} -', '- 1 -']], '{n}'))}
+            ${field(t('opts.pnPosition'), select('pn-pos', [['bottom-center', t('opts.posBottomCenter')], ['bottom-right', t('opts.posBottomRight')], ['bottom-left', t('opts.posBottomLeft')], ['top-center', t('opts.posTopCenter')], ['top-right', t('opts.posTopRight')], ['top-left', t('opts.posTopLeft')]], 'bottom-center'))}
           </div>
-          <div>
-            <label style="font-size:0.82rem; color:var(--text-muted);">${t('toolDetails.pnPosition')}</label>
-            <select id="pn-pos" class="lang-select">
-              <option value="bottom-center">In Basso al Centro</option>
-              <option value="bottom-right">In Basso a Destra</option>
-              <option value="bottom-left">In Basso a Sinistra</option>
-              <option value="top-right">In Alto a Destra</option>
-              <option value="top-center">In Alto al Centro</option>
-            </select>
+          <div class="field-row">
+            ${field(t('opts.pnStart'), '<input id="pn-start" class="text-input" type="number" min="0" value="1" />')}
+            ${field(t('opts.wmSize'), select('pn-size', [['9', '9 pt'], ['11', '11 pt'], ['14', '14 pt'], ['18', '18 pt']], '11'))}
           </div>
-        </div>
-      `;
-    } else if (toolId === 'pdfToImg') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('toolDetails.pdfToImgTitle')}</h4>
-        <div style="display:flex; gap:1rem;">
-          <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
-            <input type="radio" name="img-fmt" value="png" checked />
-            <span>${t('toolDetails.formatPng')} (Senza Perdita di Dettaglio)</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
-            <input type="radio" name="img-fmt" value="jpg" />
-            <span>${t('toolDetails.formatJpg')} (File Più Leggero)</span>
-          </label>
-        </div>
-      `;
-    } else if (toolId === 'imgToPdf') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">Configurazione PDF:</h4>
-        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-          <div>
-            <label style="font-size:0.82rem; color:var(--text-muted);">Formato Pagina:</label>
-            <select id="img-pagesize" class="lang-select">
-              <option value="a4">A4 (Standard)</option>
-              <option value="letter">US Letter</option>
-              <option value="fit">Adatta alla foto</option>
-            </select>
+          ${field(t('opts.pagesOptional'), rangeInput('pn-range', t('opts.allPages')), pages)}`;
+        break;
+      case 'pdfToImg':
+        html = `<div class="field-row">
+            ${field(t('opts.imgFormat'), select('img-fmt', [['jpg', 'JPG'], ['png', 'PNG']], 'jpg'))}
+            ${field(t('opts.quality'), select('img-dpi', [['72', t('opts.dpiLow')], ['150', t('opts.dpiMedium')], ['300', t('opts.dpiHigh')]], '150'))}
           </div>
-          <div>
-            <label style="font-size:0.82rem; color:var(--text-muted);">Margine:</label>
-            <select id="img-margin" class="lang-select">
-              <option value="20">Normale (20pt)</option>
-              <option value="0">Nessun Margine</option>
-              <option value="40">Ampio (40pt)</option>
-            </select>
-          </div>
-        </div>
-      `;
-    } else if (toolId === 'protect') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('toolDetails.protectTitle')}</h4>
-        <div style="display:flex; flex-direction:column; gap:0.75rem;">
-          <div>
-            <label style="font-size:0.82rem; color:var(--text-muted);">${t('toolDetails.enterPassword')}</label>
-            <input type="password" id="protect-pass" class="search-input" placeholder="Password segreta" style="padding-left:1.25rem;" />
-          </div>
-        </div>
-      `;
-    } else if (toolId === 'pdfToText') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('tools.pdfToText.title')}</h4>
-        <p style="font-size:0.85rem; color:var(--text-secondary);">Estrae istantaneamente tutti i caratteri, blocchi di testo e statistiche di lettura.</p>
-      `;
-    } else if (toolId === 'flatten') {
-      optionsContainer.innerHTML = `
-        <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-primary);">${t('tools.flatten.title')}</h4>
-        <p style="font-size:0.85rem; color:var(--text-secondary);">Trasforma tutti i campi modulo, caselle di controllo e annotazioni in livelli grafici statici e non modificabili.</p>
-      `;
+          ${field(t('opts.pagesOptional'), rangeInput('img-range', t('opts.allPages')), pages)}`;
+        break;
+      case 'imgToPdf':
+        html = `<div class="field-row">
+            ${field(t('opts.pageSize'), select('img-pagesize', [['a4', 'A4'], ['letter', 'US Letter'], ['fit', t('opts.pageFit')]], 'a4'))}
+            ${field(t('opts.margin'), select('img-margin', [['20', t('opts.marginNormal')], ['0', t('opts.marginNone')], ['40', t('opts.marginWide')]], '20'))}
+          </div>`;
+        break;
+      case 'ocr': {
+        const lang = getLanguage();
+        const defaults = new Set([lang, 'en']);
+        html = `<p class="muted-text">${escapeHtml(t('opts.ocrInfo'))}</p>
+          <div class="field-label">${escapeHtml(t('opts.ocrLangs'))}</div>
+          <div class="chip-list">${Object.keys(OCR_LANGS)
+            .map((c) => `<label class="chip"><input type="checkbox" name="ocr-lang" value="${c}" ${defaults.has(c) ? 'checked' : ''}/><span>${escapeHtml(t(`languages.${c}`))}</span></label>`)
+            .join('')}</div>`;
+        break;
+      }
+      case 'protect':
+        html = `${field(t('opts.password'), '<input id="pw1" class="text-input" type="password" autocomplete="new-password" />')}
+          ${field(t('opts.passwordConfirm'), '<input id="pw2" class="text-input" type="password" autocomplete="new-password" />')}
+          <label class="check-row"><input type="checkbox" id="pw-show" /> <span>${escapeHtml(t('opts.showPassword'))}</span></label>
+          <div class="field-label">${escapeHtml(t('opts.permissions'))}</div>
+          <label class="check-row"><input type="checkbox" id="perm-print" checked /> <span>${escapeHtml(t('opts.permPrint'))}</span></label>
+          <label class="check-row"><input type="checkbox" id="perm-copy" checked /> <span>${escapeHtml(t('opts.permCopy'))}</span></label>
+          <label class="check-row"><input type="checkbox" id="perm-modify" checked /> <span>${escapeHtml(t('opts.permModify'))}</span></label>
+          <p class="field-hint">${escapeHtml(t('opts.protectInfo'))}</p>`;
+        break;
+      case 'unlock':
+        html = `<p class="muted-text">${escapeHtml(t('opts.unlockReady'))}</p>`;
+        break;
+      case 'metadata':
+        html = `<div id="meta-fields">${['title', 'author', 'subject', 'keywords', 'creator']
+          .map((k) => field(t(`opts.meta_${k}`), `<input id="meta-${k}" class="text-input" />`))
+          .join('')}</div>
+          <label class="check-row"><input type="checkbox" id="meta-clear" /> <span>${escapeHtml(t('opts.metaClear'))}</span></label>`;
+        readMetadata(files[0])
+          .then((meta) => {
+            for (const [k, v] of Object.entries(meta)) {
+              const input = optionsBox.querySelector(`#meta-${k}`);
+              if (input) input.value = v;
+            }
+          })
+          .catch(showError);
+        break;
+      case 'pdfToWord':
+        html = `<p class="muted-text">${escapeHtml(t('opts.wordInfo'))}</p>`;
+        break;
+      case 'pdfToText':
+        html = `<p class="muted-text">${escapeHtml(t('opts.textInfo'))}</p>`;
+        break;
+      case 'flatten':
+        html = `<p class="muted-text">${escapeHtml(t('opts.flattenInfo'))}</p>`;
+        break;
+      default:
+        html = '';
+    }
+    optionsBox.innerHTML = html;
+    optionsBox.hidden = !html;
+
+    // Comportamenti delle opzioni
+    if (toolId === 'split') {
+      const sync = () => {
+        const mode = optionsBox.querySelector('input[name="split-mode"]:checked').value;
+        optionsBox.querySelector('#split-range').closest('.field').hidden = mode !== 'range';
+        optionsBox.querySelector('#split-chunk').closest('.field').hidden = mode !== 'chunks';
+      };
+      optionsBox.querySelectorAll('input[name="split-mode"]').forEach((r) => r.addEventListener('change', sync));
+      sync();
+    }
+    if (toolId === 'rotate') {
+      const btns = optionsBox.querySelectorAll('#rot-angle button');
+      btns.forEach((b) =>
+        b.addEventListener('click', () => {
+          btns.forEach((x) => x.classList.remove('active'));
+          b.classList.add('active');
+        })
+      );
+    }
+    if (toolId === 'protect') {
+      optionsBox.querySelector('#pw-show').addEventListener('change', (e) => {
+        optionsBox.querySelectorAll('#pw1, #pw2').forEach((i) => (i.type = e.target.checked ? 'text' : 'password'));
+      });
+    }
+    if (toolId === 'metadata') {
+      optionsBox.querySelector('#meta-clear').addEventListener('change', (e) => {
+        optionsBox.querySelector('#meta-fields').classList.toggle('disabled', e.target.checked);
+      });
     }
   }
 
-  btnAction.addEventListener('click', async () => {
-    if (selectedFiles.length === 0) return;
+  const val = (sel) => optionsBox.querySelector(sel)?.value ?? '';
+  const checked = (sel) => !!optionsBox.querySelector(sel)?.checked;
 
-    btnAction.disabled = true;
-    btnAction.textContent = t('common.processing');
+  // ------------------------------------------------------------ Elaborazione
 
-    try {
-      if (toolId === 'merge') {
-        const resultBlob = await mergePdfs(selectedFiles);
-        downloadBlob(resultBlob, 'DocuMaster_Merged.pdf');
-      } else if (toolId === 'split') {
-        const rangeStr = modalEl.querySelector('#split-range-input').value;
-        const pageIndices = parseRangeString(rangeStr);
-        const resultBlob = await splitPdf(selectedFiles[0], pageIndices);
-        downloadBlob(resultBlob, `DocuMaster_Split_${selectedFiles[0].name}`);
-      } else if (toolId === 'compress') {
-        const compLevel = modalEl.querySelector('input[name="comp-level"]:checked').value;
-        const result = await compressPdf(selectedFiles[0], compLevel);
-        downloadBlob(result.blob, `DocuMaster_Compressed_${selectedFiles[0].name}`);
-      } else if (toolId === 'rotate') {
-        const angle = parseInt(optionsContainer.dataset.selectedAngle || '90', 10);
-        const resultBlob = await rotatePdf(selectedFiles[0], angle);
-        downloadBlob(resultBlob, `DocuMaster_Rotated_${selectedFiles[0].name}`);
-      } else if (toolId === 'watermark') {
-        const text = modalEl.querySelector('#wm-text').value;
-        const opacity = parseFloat(modalEl.querySelector('#wm-opacity').value);
-        const angle = parseInt(modalEl.querySelector('#wm-rotation').value, 10);
-        const resultBlob = await addWatermarkToPdf(selectedFiles[0], text, { opacity, angle });
-        downloadBlob(resultBlob, `DocuMaster_Watermark_${selectedFiles[0].name}`);
-      } else if (toolId === 'pageNumbers') {
-        const format = modalEl.querySelector('#pn-format').value;
-        const position = modalEl.querySelector('#pn-pos').value;
-        const resultBlob = await addPageNumbersToPdf(selectedFiles[0], { format, position });
-        downloadBlob(resultBlob, `DocuMaster_Numbered_${selectedFiles[0].name}`);
-      } else if (toolId === 'pdfToImg') {
-        const fmt = modalEl.querySelector('input[name="img-fmt"]:checked').value;
-        const { zipBlob } = await convertPdfToImages(selectedFiles[0], fmt);
-        downloadBlob(zipBlob, `DocuMaster_Images_${selectedFiles[0].name.replace('.pdf', '')}.zip`);
-      } else if (toolId === 'imgToPdf') {
-        const pageSize = modalEl.querySelector('#img-pagesize').value;
-        const margin = parseInt(modalEl.querySelector('#img-margin').value, 10);
-        const images = selectedFiles.map((f) => ({ blob: f }));
-        const resultBlob = await convertImagesToPdf(images, { pageSize, margin });
-        downloadBlob(resultBlob, 'DocuMaster_Images_Document.pdf');
-      } else if (toolId === 'pdfToText') {
-        const result = await extractTextFromPdf(selectedFiles[0]);
-        // Display extracted text modal or download txt
-        const txtBlob = new Blob([result.fullText], { type: 'text/plain;charset=utf-8' });
-        downloadBlob(txtBlob, `${selectedFiles[0].name.replace('.pdf', '')}_extracted_text.txt`);
-      } else if (toolId === 'flatten') {
-        const resultBlob = await flattenPdf(selectedFiles[0]);
-        downloadBlob(resultBlob, `DocuMaster_Flattened_${selectedFiles[0].name}`);
-      } else if (toolId === 'protect') {
-        // Standard encryption metadata simulation
-        const resultBlob = await flattenPdf(selectedFiles[0]);
-        downloadBlob(resultBlob, `DocuMaster_Protected_${selectedFiles[0].name}`);
+  async function run() {
+    const file = files[0];
+    const name = file ? baseName(file.name) : 'document';
+    const onProgress = (f, phase) => {
+      progress.el.hidden = false;
+      progress.set(f, phase === 'download' ? t('progress.downloadingModel') : t('progress.working', { pct: Math.round(f * 100) }));
+    };
+
+    switch (toolId) {
+      case 'merge':
+        return { blob: await mergePdfs(files), filename: `${baseName(files[0].name)}_merged.pdf`, details: [t('result.mergedCount', { n: files.length })] };
+      case 'split': {
+        const mode = optionsBox.querySelector('input[name="split-mode"]:checked').value;
+        return splitPdf(file, { mode, range: val('#split-range'), chunkSize: val('#split-chunk') });
       }
+      case 'compress': {
+        const level = optionsBox.querySelector('input[name="comp-level"]:checked').value;
+        const r = await compressPdf(file, level, onProgress);
+        const pct = Math.round((1 - r.compressedSize / r.originalSize) * 100);
+        const details = r.alreadyOptimized
+          ? [t('result.alreadyOptimized')]
+          : [t('result.compressed', { from: formatBytes(r.originalSize), to: formatBytes(r.compressedSize), pct })];
+        if (r.imagesTotal) details.push(t('result.imagesOptimized', { n: r.imagesReplaced, total: r.imagesTotal }));
+        return { blob: r.blob, filename: `${name}_compressed.pdf`, details };
+      }
+      case 'rotate': {
+        const angle = parseInt(optionsBox.querySelector('#rot-angle .active').dataset.angle, 10);
+        return { blob: await rotatePdf(file, angle, val('#rot-range')), filename: `${name}_rotated.pdf` };
+      }
+      case 'watermark':
+        return {
+          blob: await addWatermarkToPdf(file, val('#wm-text'), {
+            opacity: parseFloat(val('#wm-opacity')),
+            angle: parseInt(val('#wm-angle'), 10),
+            size: parseInt(val('#wm-size'), 10),
+            color: val('#wm-color'),
+            layout: val('#wm-layout'),
+          }),
+          filename: `${name}_watermark.pdf`,
+        };
+      case 'pageNumbers':
+        return {
+          blob: await addPageNumbersToPdf(file, {
+            format: val('#pn-format'),
+            position: val('#pn-pos'),
+            start: parseInt(val('#pn-start'), 10) || 1,
+            fontSize: parseInt(val('#pn-size'), 10),
+            range: val('#pn-range'),
+          }),
+          filename: `${name}_numbered.pdf`,
+        };
+      case 'pdfToImg':
+        return convertPdfToImages(file, { format: val('#img-fmt'), dpi: parseInt(val('#img-dpi'), 10), range: val('#img-range') }, onProgress);
+      case 'imgToPdf': {
+        const blob = await imagesToPdfBlob(
+          files.map((f) => ({ blob: f })),
+          { pageSize: val('#img-pagesize'), margin: parseInt(val('#img-margin'), 10) }
+        );
+        return { blob, filename: `${baseName(files[0].name)}.pdf`, details: [t('common.pagesCount', { n: files.length })] };
+      }
+      case 'ocr': {
+        const langs = [...optionsBox.querySelectorAll('input[name="ocr-lang"]:checked')].map((c) => c.value);
+        if (!langs.length) throw new UserError('errors.ocrNoLang');
+        onProgress(0, 'download');
+        if (isPdfFile(file)) {
+          const r = await ocrPdf(file, { langs, onProgress });
+          return { blob: r.blob, filename: `${name}_ocr.pdf`, details: [t('result.ocrPages', { n: r.pagesProcessed })] };
+        }
+        const canvas = await imageToCanvas(file, 2600);
+        const r = await ocrCanvasesToPdf([canvas], { langs, pageSize: 'fit', margin: 0, onProgress });
+        return { blob: r.blob, filename: `${name}_ocr.pdf`, details: [t('result.ocrPages', { n: 1 })] };
+      }
+      case 'pdfToText': {
+        const r = await extractTextFromPdf(file, t('common.page'));
+        if (!r.words) throw new UserError('errors.noTextLayer');
+        const details = [t('result.words', { n: formatNumber(r.words) })];
+        if (r.emptyPages) details.push(t('result.pagesWithoutText', { n: r.emptyPages }));
+        return { blob: new Blob([r.fullText], { type: 'text/plain;charset=utf-8' }), filename: `${name}.txt`, details };
+      }
+      case 'pdfToWord':
+        return convertPdfToDocx(file);
+      case 'flatten':
+        return { blob: await flattenPdf(file), filename: `${name}_flattened.pdf` };
+      case 'protect': {
+        const pw = val('#pw1');
+        if (!pw) throw new UserError('errors.passwordEmpty');
+        if (pw !== val('#pw2')) throw new UserError('errors.passwordMismatch');
+        const blob = await protectPdf(file, pw, {
+          print: checked('#perm-print'),
+          copy: checked('#perm-copy'),
+          modify: checked('#perm-modify'),
+        });
+        return { blob, filename: `${name}_protected.pdf`, details: [t('result.protected')] };
+      }
+      case 'unlock':
+        // Il file è già stato decifrato al caricamento con la password inserita dall'utente
+        return { blob: new Blob([await file.arrayBuffer()], { type: 'application/pdf' }), filename: `${name}_unlocked.pdf`, details: [t('result.unlocked')] };
+      case 'metadata': {
+        const meta = {};
+        for (const k of ['title', 'author', 'subject', 'keywords', 'creator']) meta[k] = val(`#meta-${k}`);
+        return { blob: await writeMetadata(file, meta, { removeAll: checked('#meta-clear') }), filename: `${name}.pdf` };
+      }
+      default:
+        throw new Error(`Strumento sconosciuto: ${toolId}`);
+    }
+  }
 
-      confetti({ particleCount: 75, spread: 65 });
-      close();
+  actionBtn.addEventListener('click', async () => {
+    setButtonBusy(actionBtn, true, t('common.processing'));
+    cancelBtn.disabled = true;
+    try {
+      const result = await run();
+      m.close();
+      showResult({ blob: result.blob, filename: result.filename, details: result.details || [] });
     } catch (err) {
-      console.error(`Error executing ${toolId}:`, err);
-      alert('Errore: ' + err.message);
-      btnAction.disabled = false;
-      btnAction.textContent = t('common.apply');
+      showError(err);
+      progress.el.hidden = true;
+      setButtonBusy(actionBtn, false, t(`actions.${toolId}`));
+      cancelBtn.disabled = false;
     }
   });
 
-  function parseRangeString(rangeStr) {
-    const indices = [];
-    const parts = rangeStr.split(',');
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (trimmed.includes('-')) {
-        const [start, end] = trimmed.split('-').map((n) => parseInt(n.trim(), 10));
-        if (!isNaN(start) && !isNaN(end)) {
-          for (let i = start; i <= end; i++) {
-            if (i >= 1) indices.push(i - 1);
-          }
-        }
-      } else {
-        const num = parseInt(trimmed, 10);
-        if (!isNaN(num) && num >= 1) indices.push(num - 1);
-      }
-    }
-    return indices.length > 0 ? indices : [0];
+  if (initialFiles.length) {
+    const usable = initialFiles.filter((f) => (accept.includes('pdf') && isPdfFile(f)) || (accept.includes('image') && f.type?.startsWith('image/')));
+    if (usable.length) addFiles(multiple ? usable : [usable[0]]);
   }
-
-  function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  function close() {
-    modalEl.classList.remove('active');
-    setTimeout(() => {
-      modalEl.remove();
-      if (onClose) onClose();
-    }, 250);
-  }
-
-  btnClose.onclick = close;
-  btnCancel.onclick = close;
-
-  if (initialFile) {
-    renderFiles();
-    renderToolOptions();
-  }
+  return m;
 }
