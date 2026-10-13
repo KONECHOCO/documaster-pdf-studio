@@ -72,6 +72,7 @@ export async function loadPdfJsDoc(source, password) {
     return await task.promise;
   } catch (err) {
     if (err?.name === 'PasswordException') throw new UserError('errors.encrypted');
+    console.warn('pdf.js non riesce ad aprire il file', err);
     throw new UserError('errors.invalidPdf');
   }
 }

@@ -1,0 +1,7 @@
+{
+  "appId": "com.ikonet.documaster",
+  "appName": "DocuMaster",
+  "webDir": "dist",
+  "ios": { "contentInset": "never", "backgroundColor": "#090d16" },
+  "android": { "backgroundColor": "#090d16" }
+}

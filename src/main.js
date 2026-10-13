@@ -148,6 +148,9 @@ window.addEventListener('drop', (e) => {
   if (file && !document.body.classList.contains('modal-open')) receiveFile(file);
 });
 
+// Aggancio per gli script di screenshot degli store (scripts/capture-store-screenshots.mjs)
+window.__documaster = { openTool, openProModal };
+
 listenForIncomingFiles(receiveFile);
 listenForBackButton(closeTopModal);
 initMonetization();

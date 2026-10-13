@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="0.55" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef0ff"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#1e1b4b" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- cornice di scansione -->
+  <g fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" opacity="0.92">
+    <path d="M168 300 V208 a40 40 0 0 1 40 -40 H300"/>
+    <path d="M724 168 H816 a40 40 0 0 1 40 40 V300"/>
+    <path d="M856 724 V816 a40 40 0 0 1 -40 40 H724"/>
+    <path d="M300 856 H208 a40 40 0 0 1 -40 -40 V724"/>
+  </g>
+  <!-- documento -->
+  <g filter="url(#sh)">
+    <path d="M330 250 H600 L720 370 V760 a34 34 0 0 1 -34 34 H330 a34 34 0 0 1 -34 -34 V284 a34 34 0 0 1 34 -34 Z" fill="url(#paper)"/>
+    <path d="M600 250 V336 a34 34 0 0 0 34 34 H720 Z" fill="#c7cbff"/>
+  </g>
+  <g stroke="#c7cbff" stroke-width="26" stroke-linecap="round">
+    <line x1="370" y1="430" x2="560" y2="430"/>
+    <line x1="370" y1="500" x2="640" y2="500"/>
+  </g>
+  <!-- spunta -->
+  <circle cx="610" cy="660" r="118" fill="#10b981"/>
+  <polyline points="550,660 595,705 675,620" fill="none" stroke="#ffffff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

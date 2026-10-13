@@ -4,7 +4,7 @@ import { t, formatBytes } from '../i18n/index.js';
 import { saveFile, openFile, isNative } from '../platform/files.js';
 import { UserError, isPdfFile, readBytes } from '../utils/pdfHelper.js';
 import { looksEncrypted, decryptPdfBytes } from '../utils/qpdf.js';
-import { trackAdAction } from '../services/monetization.js';
+import { trackAdAction, getMonetization } from '../services/monetization.js';
 
 export function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -365,9 +365,11 @@ export function showResult({ blob, filename, details = [], title }) {
     list.appendChild(li);
   }
 
-  const save = button(isNative ? t('result.saveShare') : t('result.download'), {
+  // Interfaccia dell'app: anche nell'anteprima per gli screenshot degli store
+  const appUi = isNative || getMonetization().native;
+  const save = button(appUi ? t('result.saveShare') : t('result.download'), {
     variant: 'success',
-    icon: isNative ? ICONS.share : ICONS.download,
+    icon: appUi ? ICONS.share : ICONS.download,
   });
   save.classList.add('btn-block');
   save.onclick = async () => {
@@ -382,7 +384,7 @@ export function showResult({ blob, filename, details = [], title }) {
   actions.className = 'result-actions';
   actions.appendChild(save);
 
-  if (!isNative) {
+  if (!appUi) {
     const preview = button(t('result.open'), { icon: ICONS.eye });
     preview.onclick = () => openFile(blob, filename);
     actions.appendChild(preview);

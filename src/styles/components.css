@@ -1189,3 +1189,24 @@ html {
 .search-input {
   font-size: 16px;
 }
+
+/* Telefoni stretti (360 px): la barra deve contenere logo, lingua, tema e Pro */
+@media (max-width: 400px) {
+  .navbar {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .brand-text small {
+    display: none;
+  }
+  .brand-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .lang-select {
+    max-width: 82px;
+  }
+  .nav-actions {
+    gap: 0.35rem;
+  }
+}

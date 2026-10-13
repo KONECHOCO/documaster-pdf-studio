@@ -1,0 +1,9 @@
+{
+  "it": { "name": "DocuMaster Pro", "description": "Rimuove tutta la pubblicità per sempre" },
+  "en-US": { "name": "DocuMaster Pro", "description": "Removes all ads forever" },
+  "fr-FR": { "name": "DocuMaster Pro", "description": "Supprime toute la publicité pour toujours" },
+  "es-ES": { "name": "DocuMaster Pro", "description": "Quita toda la publicidad para siempre" },
+  "de-DE": { "name": "DocuMaster Pro", "description": "Entfernt dauerhaft die gesamte Werbung" },
+  "pt-BR": { "name": "DocuMaster Pro", "description": "Remove toda a publicidade para sempre" },
+  "ja": { "name": "DocuMaster Pro", "description": "すべての広告を永久に非表示" }
+}

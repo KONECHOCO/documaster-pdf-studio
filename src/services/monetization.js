@@ -77,8 +77,9 @@ function writeStorage(key, value) {
 const USE_TEST_ADS = env.DEV || !REAL_IDS.banner || readStorage(TEST_ADS_KEY, false);
 const AD_IDS = USE_TEST_ADS ? TEST_IDS[platform] || TEST_IDS.android : REAL_IDS;
 
-// Solo in sviluppo: ?storeshot mostra l'interfaccia d'acquisto nativa per gli screenshot degli store
-const previewNative = env.DEV && typeof location !== 'undefined' && location.search.includes('storeshot');
+// Solo per gli screenshot degli store: ?storeshot + flag locale mostrano l'interfaccia dell'app nativa
+const previewNative =
+  typeof location !== 'undefined' && location.search.includes('storeshot') && (env.DEV || readStorage('documaster.storeshot', false));
 
 // ---------- Stato osservabile ----------
 let state = {
