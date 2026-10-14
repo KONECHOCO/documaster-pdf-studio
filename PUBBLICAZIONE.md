@@ -27,7 +27,7 @@ Aggiornato al 14/10/2026.
    - Su Play Console: creare l'app `com.ikonet.documaster`, il prodotto in-app `documaster_pro` a 2,99 € e fare il primo caricamento dell'AAB a mano.
    - Testi e grafiche sono pronti in `store-assets/listing.json` (campi `playShort` e `description`) e in `store-assets/play/`.
 2. **AdMob → "Aggiungi store"** sulle due app, appena App Store e Play le approvano. Fino ad allora la pubblicazione degli annunci resta limitata.
-3. **Francia**: presentare la dichiarazione di cifratura all'ANSSI (procedura gratuita). Quando è approvata:
+3. **Francia**: dichiarazione di cifratura ANSSI **depositata il 14/10/2026** (demarche.numerique.gouv.fr, dossier n° 34672087, documenti in `docs/anssi/`). Quando arriva l'attestation con il numero di pratica:
    - caricarla in App Store Connect;
    - rimettere la Francia nella disponibilità;
    - rivedere `ITSAppUsesNonExemptEncryption`.

@@ -15,8 +15,8 @@ Il modulo si compila su demarche.numerique.gouv.fr, alla voce « Déclaration re
 | Civilité | M. |
 | Nom | KONE |
 | Prénoms | INZA |
-| Nationalité | ⚠ da completare (es. Italienne / Ivoirienne) |
-| Adresse | ⚠ da completare (indirizzo completo di residenza, Italia) |
+| Nationalité | Italienne |
+| Adresse | Via Mignone 20, 29121 Piacenza (PC), Italie |
 | Numéro de téléphone | +39 329 618 5600 |
 | Adresse électronique | konechocoproduction@gmail.com |
 
