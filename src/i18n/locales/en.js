@@ -23,6 +23,7 @@ export default {
     why4Desc: 'From signing to compression, from redacting personal data to converting to Word.',
     footer: '100% local processing',
     privacyPolicy: 'Privacy',
+    privacyOptions: 'Privacy options',
   },
   categories: {
     all: 'All',

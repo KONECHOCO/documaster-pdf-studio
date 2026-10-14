@@ -11,7 +11,7 @@ function normalize(s) {
   return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro }) {
+export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro, showPrivacyOptions, onPrivacyOptions }) {
   container.innerHTML = `
     <section class="hero-section">
       <div class="hero-glow"></div>
@@ -40,7 +40,7 @@ export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro }) 
     </section>
     <footer class="footer">
       <p>DocuMaster PDF Studio · ${escapeHtml(t('home.footer'))} · © ${new Date().getFullYear()} Ikonet Solutions</p>
-      <p><a href="https://pdf.ikonetsolutions.com/privacy.html" target="_blank" rel="noopener">${escapeHtml(t('home.privacyPolicy'))}</a></p>
+      <p><a href="https://pdf.ikonetsolutions.com/privacy.html" target="_blank" rel="noopener">${escapeHtml(t('home.privacyPolicy'))}</a>${showPrivacyOptions ? ` · <button class="link-btn" id="privacy-options">${escapeHtml(t('home.privacyOptions'))}</button>` : ''}</p>
     </footer>`;
 
   const search = container.querySelector('#tool-search-input');
@@ -88,5 +88,6 @@ export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro }) 
   );
   container.querySelector('#home-pro')?.addEventListener('click', onOpenPro);
   renderAdSlot(container.querySelector('#home-ad'));
+  container.querySelector('#privacy-options')?.addEventListener('click', onPrivacyOptions);
   renderCards();
 }

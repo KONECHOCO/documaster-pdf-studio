@@ -23,6 +23,7 @@ export default {
     why4Desc: 'Da assinatura à compressão, da ocultação de dados pessoais à conversão para Word.',
     footer: 'Processamento 100% local',
     privacyPolicy: 'Privacidade',
+    privacyOptions: 'Opções de privacidade',
   },
   categories: {
     all: 'Todas',

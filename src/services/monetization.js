@@ -13,6 +13,7 @@ import { App as CapApp } from '@capacitor/app';
 import {
   AdMob,
   AdmobConsentStatus,
+  PrivacyOptionsRequirementStatus,
   AppOpenAdPluginEvents,
   BannerAdPluginEvents,
   BannerAdPosition,
@@ -89,6 +90,7 @@ let state = {
   adsReady: false,
   bannerHeight: 0,
   testAds: USE_TEST_ADS,
+  privacyOptionsRequired: false,
   diag: [],
 };
 const listeners = new Set();
@@ -238,6 +240,8 @@ async function gatherConsent() {
       diag(`UMP dopo il modulo: stato=${info.status} canRequestAds=${info.canRequestAds}`);
     }
     canRequestAds = info.canRequestAds !== false;
+    // Norme Google: chi ha dato il consenso deve poterlo modificare dall'app (link "Opzioni privacy")
+    setState({ privacyOptionsRequired: info.privacyOptionsRequirementStatus === PrivacyOptionsRequirementStatus.REQUIRED });
   } catch (err) {
     diag(`UMP errore: ${err?.message || err}`);
   }
@@ -377,6 +381,16 @@ export async function restorePro() {
   }
   await refreshProStatus();
   return state.isPro;
+}
+
+/** Riapre il modulo di consenso GDPR di Google (UMP) per modificare le scelte. */
+export async function showPrivacyOptions() {
+  if (!native) return;
+  try {
+    await AdMob.showPrivacyOptionsForm();
+  } catch (err) {
+    diag(`opzioni privacy errore: ${err?.message || err}`);
+  }
 }
 
 /** Interruttore nascosto per le build di prova: annunci di test on/off (serve riavviare l'app). */

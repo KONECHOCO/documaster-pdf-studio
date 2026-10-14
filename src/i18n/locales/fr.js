@@ -23,6 +23,7 @@ export default {
     why4Desc: 'De la signature à la compression, du caviardage des données personnelles à la conversion en Word.',
     footer: 'Traitement 100 % local',
     privacyPolicy: 'Confidentialité',
+    privacyOptions: 'Options de confidentialité',
   },
   categories: {
     all: 'Tous',

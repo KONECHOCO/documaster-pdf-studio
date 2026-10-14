@@ -23,6 +23,7 @@ export default {
     why4Desc: 'De la firma a la compresión, de ocultar datos personales a convertir a Word.',
     footer: 'Procesamiento 100 % local',
     privacyPolicy: 'Privacidad',
+    privacyOptions: 'Opciones de privacidad',
   },
   categories: {
     all: 'Todas',

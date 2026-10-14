@@ -25,7 +25,7 @@ import { openProModal } from './components/ProModal.js';
 import { openModal, setContinueHandler, closeTopModal, preparePdf, showError, escapeHtml } from './components/ui.js';
 import { TOOLS, PDF_TOOLS } from './tools.js';
 import { listenForIncomingFiles, listenForBackButton } from './platform/files.js';
-import { initMonetization, trackAdAction, subscribeMonetization, getMonetization } from './services/monetization.js';
+import { initMonetization, trackAdAction, subscribeMonetization, getMonetization, showPrivacyOptions } from './services/monetization.js';
 import { isPdfFile } from './utils/pdfHelper.js';
 
 const app = document.getElementById('app');
@@ -114,7 +114,7 @@ async function receiveFile(file) {
 setContinueHandler((file) => chooseToolFor(file, t('chooser.continueTitle')));
 
 function renderAll() {
-  const { native, isPro } = getMonetization();
+  const { native, isPro, privacyOptionsRequired } = getMonetization();
   renderHeader(headerEl, {
     onLanguageChange: (lang) => {
       // Sulle pagine del sito per lingua si passa alla pagina equivalente (indirizzi indicizzati da Google)
@@ -129,7 +129,13 @@ function renderAll() {
     onOpenPro: openProModal,
     onHome: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
   });
-  renderToolGrid(mainEl, { onSelectTool: (id) => openTool(id), onOpenPro: openProModal, showPro: native && !isPro });
+  renderToolGrid(mainEl, {
+    onSelectTool: (id) => openTool(id),
+    onOpenPro: openProModal,
+    showPro: native && !isPro,
+    showPrivacyOptions: native && privacyOptionsRequired,
+    onPrivacyOptions: showPrivacyOptions,
+  });
   // Le pagine del sito hanno già un titolo specifico per la ricerca: non va sovrascritto
   if (!document.documentElement.dataset.pageLang) document.title = `DocuMaster PDF Studio — ${t('home.metaTitle')}`;
 }
@@ -137,14 +143,16 @@ renderAll();
 
 // Banner AdMob: spazio riservato in fondo; pannello diagnostico con gli annunci di test
 let lastPro = getMonetization().isPro;
+let lastPrivacy = getMonetization().privacyOptionsRequired;
 subscribeMonetization((s) => {
   document.documentElement.style.setProperty('--banner-height', `${s.isPro ? 0 : s.bannerHeight}px`);
   const diagEl = document.getElementById('ad-diagnostics');
   if (s.testAds && s.native) {
     diagEl.innerHTML = `<details class="ad-diag"><summary>ADS DEBUG · ready=${s.adsReady} pro=${s.isPro}</summary><div>${s.diag.map((l) => `<div>${escapeHtml(l)}</div>`).join('')}</div></details>`;
   } else diagEl.innerHTML = '';
-  if (s.isPro !== lastPro) {
+  if (s.isPro !== lastPro || s.privacyOptionsRequired !== lastPrivacy) {
     lastPro = s.isPro;
+    lastPrivacy = s.privacyOptionsRequired;
     renderAll();
   }
 });

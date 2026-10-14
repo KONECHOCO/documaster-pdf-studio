@@ -23,6 +23,7 @@ export default {
     why4Desc: 'Von der Unterschrift bis zur Komprimierung, vom Schwärzen persönlicher Daten bis zur Umwandlung in Word.',
     footer: '100 % lokale Verarbeitung',
     privacyPolicy: 'Datenschutz',
+    privacyOptions: 'Datenschutzoptionen',
   },
   categories: {
     all: 'Alle',

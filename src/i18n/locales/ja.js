@@ -23,6 +23,7 @@ export default {
     why4Desc: '署名から圧縮、個人情報の墨消しからWord変換まで。',
     footer: '100%ローカル処理',
     privacyPolicy: 'プライバシー',
+    privacyOptions: 'プライバシー設定',
   },
   categories: {
     all: 'すべて',
