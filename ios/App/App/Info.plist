@@ -105,6 +105,11 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<!-- Cifratura: solo algoritmi standard (AES-256 dei PDF tramite QPDF), app non distribuita in Francia.
+	     Con queste risposte App Store Connect considera la build esente (14/10/2026). Se si aggiunge la Francia
+	     serve la dichiarazione ANSSI e questo valore va rivisto. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
