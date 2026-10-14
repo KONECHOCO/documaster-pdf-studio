@@ -338,6 +338,11 @@ export function fileRow(file, actions = '') {
 // ---------------------------------------------------------------- Risultato
 
 let continueHandler = null;
+let viewHandler = null;
+/** main.js registra qui il lettore PDF interno (anteprima dei risultati, anche nell'app). */
+export function setViewHandler(fn) {
+  viewHandler = fn;
+}
 /** main.js registra qui come aprire un altro strumento con il file appena prodotto. */
 export function setContinueHandler(fn) {
   continueHandler = fn;
@@ -385,12 +390,16 @@ export function showResult({ blob, filename, details = [], title }) {
   actions.className = 'result-actions';
   actions.appendChild(save);
 
-  if (!appUi) {
+  const isPdf = blob.type === 'application/pdf' || /\.pdf$/i.test(filename);
+  if (isPdf && viewHandler) {
+    const preview = button(t('result.open'), { icon: ICONS.eye });
+    preview.onclick = () => viewHandler(new File([blob], filename, { type: 'application/pdf' }));
+    actions.appendChild(preview);
+  } else if (!appUi) {
     const preview = button(t('result.open'), { icon: ICONS.eye });
     preview.onclick = () => openFile(blob, filename);
     actions.appendChild(preview);
   }
-  const isPdf = blob.type === 'application/pdf' || /\.pdf$/i.test(filename);
   if (isPdf && continueHandler) {
     const cont = button(t('result.continue'), { icon: ICONS.next });
     cont.onclick = () => {

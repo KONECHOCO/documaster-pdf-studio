@@ -8,6 +8,8 @@ import { TOOLS } from '../src/tools.js';
 const SITE = 'https://pdf.ikonetsolutions.com';
 const LANGS = ['it', 'en', 'es', 'fr', 'de', 'pt', 'ja'];
 const SLUGS = {
+  reader: 'pdf-reader',
+  readAloud: 'read-pdf-aloud',
   scanner: 'pdf-scanner', ocr: 'ocr-pdf', merge: 'merge-pdf', split: 'split-pdf', compress: 'compress-pdf',
   edit: 'edit-pdf', sign: 'sign-pdf', fillForm: 'fill-pdf-form', pdfToWord: 'pdf-to-word', pdfToImg: 'pdf-to-jpg',
   imgToPdf: 'jpg-to-pdf', pdfToText: 'pdf-to-text', organize: 'organize-pdf', rotate: 'rotate-pdf',

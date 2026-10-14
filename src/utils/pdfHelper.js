@@ -438,6 +438,18 @@ function paragraphsFromLines(lines) {
   return paragraphs;
 }
 
+/** Testo di una pagina per la lettura: righe unite, parole spezzate dal trattino ricomposte. */
+export async function getPageText(pdfJsDoc, pageNum) {
+  const page = await pdfJsDoc.getPage(pageNum);
+  const lines = linesFromTextContent(await page.getTextContent());
+  return lines
+    .map((l) => l.text)
+    .join('\n')
+    .replace(/(\p{L})-\n(\p{Ll})/gu, '$1$2')
+    .replace(/\n/g, ' ')
+    .trim();
+}
+
 export async function extractPdfStructure(file) {
   const pdfJsDoc = await loadPdfJsDoc(file);
   const pages = [];

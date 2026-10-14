@@ -40,7 +40,7 @@ export async function createOcrWorker(langCodes, onStatus) {
   }
 }
 
-async function recognize(worker, canvas) {
+export async function recognize(worker, canvas) {
   const { data } = await worker.recognize(canvas, {}, { text: true, blocks: true });
   const words = [];
   for (const block of data.blocks || []) {

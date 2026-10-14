@@ -35,4 +35,7 @@ Aggiornato al 14/10/2026.
    - richiedere l'approvazione per `pdf.ikonetsolutions.com` su adsense.google.com;
    - poi mettere `VITE_ADSENSE_CLIENT` e `VITE_ADSENSE_SLOT` in `.env.production` e ripubblicare. Gli spazi pubblicitari sono già nel codice.
 5. **Google Search Console**: aggiungere il dominio e inviare `https://pdf.ikonetsolutions.com/sitemap.xml`.
-6. **Prossima versione (1.0.1)**: contiene già il link "Opzioni privacy" (revoca del consenso GDPR, richiesto da Google). Va in build con il prossimo aggiornamento.
+6. **Prossima versione** (dopo l'esito di Apple sulla 1.0.0). Contiene già:
+   - il link "Opzioni privacy" (revoca del consenso GDPR, richiesto da Google);
+   - **Lettore PDF** e **Leggi PDF ad alta voce** (voce del sistema tramite `@capacitor-community/text-to-speech`, OCR per le pagine scansionate). I PDF aperti da altre app ora si aprono nel lettore.
+   - Da fare all'invio: aggiornare descrizioni e parole chiave in `store-assets/listing.json` (lettore PDF, leggere ad alta voce) e rifare gli screenshot con il lettore.

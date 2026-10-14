@@ -22,7 +22,8 @@ import { openGenericToolModal } from './components/GenericToolModal.js';
 import { openFillFormModal } from './components/FillFormModal.js';
 import { openRedactModal } from './components/RedactModal.js';
 import { openProModal } from './components/ProModal.js';
-import { openModal, setContinueHandler, closeTopModal, preparePdf, showError, escapeHtml } from './components/ui.js';
+import { openReaderModal } from './components/ReaderModal.js';
+import { openModal, setContinueHandler, setViewHandler, closeTopModal, preparePdf, showError, escapeHtml } from './components/ui.js';
 import { TOOLS, PDF_TOOLS } from './tools.js';
 import { listenForIncomingFiles, listenForBackButton } from './platform/files.js';
 import { initMonetization, trackAdAction, subscribeMonetization, getMonetization, showPrivacyOptions } from './services/monetization.js';
@@ -78,17 +79,22 @@ export function openTool(toolId, files = []) {
       return openOrganizeModal(file);
     case 'redact':
       return openRedactModal(file);
+    case 'reader':
+    case 'readAloud':
+      return openReaderModal(file, { speak: toolId === 'readAloud', onTools: (f) => chooseToolFor(f, undefined, { fromReader: true }) });
     default:
       return openGenericToolModal(toolId, files);
   }
 }
 
 /** Scelta dello strumento per un PDF arrivato da fuori (trascinato, "Apri con…", risultato precedente). */
-function chooseToolFor(file, title) {
+const READER_TOOLS = ['reader', 'readAloud'];
+
+function chooseToolFor(file, title, { fromReader = false } = {}) {
   const m = openModal({ title: title || t('chooser.title'), subtitle: file.name, size: 'md' });
   const grid = document.createElement('div');
   grid.className = 'chooser-grid';
-  grid.innerHTML = TOOLS.filter((tool) => PDF_TOOLS.includes(tool.id))
+  grid.innerHTML = TOOLS.filter((tool) => PDF_TOOLS.includes(tool.id) && !(fromReader && READER_TOOLS.includes(tool.id)))
     .map(
       (tool) => `<button class="chooser-item" data-id="${tool.id}"><span class="card-icon card-icon-sm" style="background:${tool.color}">${tool.icon}</span><span>${escapeHtml(t(`tools.${tool.id}.title`))}</span></button>`
     )
@@ -105,13 +111,15 @@ function chooseToolFor(file, title) {
 async function receiveFile(file) {
   try {
     if (!isPdfFile(file)) return;
-    chooseToolFor(await preparePdf(file));
+    // Un PDF aperto da un'altra app si legge subito; da lì "Strumenti" per lavorarci
+    openTool('reader', [await preparePdf(file)]);
   } catch (err) {
     showError(err);
   }
 }
 
 setContinueHandler((file) => chooseToolFor(file, t('chooser.continueTitle')));
+setViewHandler((file) => openReaderModal(file, { onTools: (f) => chooseToolFor(f, undefined, { fromReader: true }) }));
 
 function renderAll() {
   const { native, isPro, privacyOptionsRequired } = getMonetization();

@@ -3,6 +3,8 @@ const i = (body) =>
   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const TOOLS = [
+  { id: 'reader', category: 'read', popular: true, color: 'linear-gradient(135deg,#f97316,#db2777)', icon: i('<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>') },
+  { id: 'readAloud', category: 'read', popular: true, color: 'linear-gradient(135deg,#22c55e,#0ea5e9)', icon: i('<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/>') },
   { id: 'scanner', category: 'scan', popular: true, color: 'linear-gradient(135deg,#10b981,#059669)', icon: i('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/>') },
   { id: 'ocr', category: 'scan', popular: true, color: 'linear-gradient(135deg,#0ea5e9,#2563eb)', icon: i('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 9h8M12 9v7"/>') },
   { id: 'merge', category: 'organize', popular: true, color: 'linear-gradient(135deg,#ec4899,#f43f5e)', icon: i('<path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 8v8M8 12h8"/>') },
@@ -27,7 +29,7 @@ export const TOOLS = [
   { id: 'analytics', category: 'analytics', popular: false, color: 'linear-gradient(135deg,#6366f1,#8b5cf6)', icon: i('<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>') },
 ];
 
-export const CATEGORIES = ['all', 'popular', 'scan', 'edit', 'organize', 'convert', 'security', 'analytics'];
+export const CATEGORIES = ['all', 'popular', 'read', 'scan', 'edit', 'organize', 'convert', 'security', 'analytics'];
 
 /** Strumenti che possono ricevere un PDF già pronto (per "Continua con un altro strumento"). */
 export const PDF_TOOLS = TOOLS.filter((tool) => tool.id !== 'scanner' && tool.id !== 'imgToPdf').map((tool) => tool.id);
