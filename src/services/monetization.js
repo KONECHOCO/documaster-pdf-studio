@@ -13,7 +13,6 @@ import { App as CapApp } from '@capacitor/app';
 import {
   AdMob,
   AdmobConsentStatus,
-  PrivacyOptionsRequirementStatus,
   AppOpenAdPluginEvents,
   BannerAdPluginEvents,
   BannerAdPosition,
@@ -241,7 +240,7 @@ async function gatherConsent() {
     }
     canRequestAds = info.canRequestAds !== false;
     // Norme Google: chi ha dato il consenso deve poterlo modificare dall'app (link "Opzioni privacy")
-    setState({ privacyOptionsRequired: info.privacyOptionsRequirementStatus === PrivacyOptionsRequirementStatus.REQUIRED });
+    setState({ privacyOptionsRequired: info.privacyOptionsRequirementStatus === 'REQUIRED' });
   } catch (err) {
     diag(`UMP errore: ${err?.message || err}`);
   }
