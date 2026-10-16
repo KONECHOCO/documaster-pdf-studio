@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Statistiche di pdf.ikonetsolutions.com dai log di nginx, inviate su Telegram.
+"""Statistiche di offlinepdfstudio.com dai log di nginx, inviate su Telegram.
 
 Niente cookie né script di terze parti: si leggono i log del server.
 - Visitatori unici = combinazioni diverse di IP + browser nel giorno (stima, come fanno Plausible/GoAccess).
@@ -31,7 +31,8 @@ ENV_FILE = '/etc/documaster-stats.env'
 STATE_FILE = '/var/lib/documaster-stats/state.json'
 LOG_GLOB = '/var/log/nginx/documaster.log'
 TZ = ZoneInfo('Europe/Rome')
-SITE = 'pdf.ikonetsolutions.com'
+# Il sito e il vecchio indirizzo (che ora rimanda al nuovo): non sono provenienze esterne
+SITES = ('offlinepdfstudio.com', 'pdf.ikonetsolutions.com')
 
 LINE = re.compile(r'(?P<ip>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d{3}) \S+ "(?P<ref>[^"]*)" "(?P<ua>[^"]*)"')
 BOT = re.compile(r'bot|crawl|spider|slurp|bingpreview|facebookexternalhit|embedly|preview|curl|wget|python|go-http|headless|lighthouse|monitor|scan|httpclient|java/|okhttp|axios|node-fetch|semrush|ahrefs|petal|bytespider|gptbot|claude|perplexity', re.I)
@@ -138,7 +139,7 @@ def collect(start, end):
             ref = m['ref']
             if ref and ref != '-':
                 host = urllib.parse.urlsplit(ref).hostname or ''
-                if host and SITE not in host:
+                if host and not any(s in host for s in SITES):
                     host = re.sub(r'^(www\.|m\.)', '', host)
                     refs[host] += 1
     return {
@@ -222,7 +223,7 @@ def link():
         sys.exit('Nessun messaggio ricevuto: apri il bot su Telegram, premi Avvia (/start) e riprova.')
     chat = chats[-1]
     save_env_value('TELEGRAM_CHAT_ID', str(chat['id']))
-    send('✅ Collegato. Ogni mattina alle 8 ti mando le statistiche di pdf.ikonetsolutions.com.\nComandi: /oggi · /ieri · /settimana', chat['id'])
+    send('✅ Collegato. Ogni mattina alle 8 ti mando le statistiche di offlinepdfstudio.com.\nComandi: /oggi · /ieri · /settimana', chat['id'])
     print('chat collegata:', chat.get('first_name') or chat.get('title'), chat['id'])
 
 

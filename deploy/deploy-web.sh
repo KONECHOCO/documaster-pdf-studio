@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pubblica la build web su pdf.ikonetsolutions.com (ivoiro-server)
+# Pubblica la build web su offlinepdfstudio.com (ivoiro-server)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 npm run build:web

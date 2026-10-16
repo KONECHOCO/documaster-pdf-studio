@@ -1,11 +1,11 @@
-// Versione web (pdf.ikonetsolutions.com): una pagina per ogni lingua e per ogni strumento,
+// Versione web (offlinepdfstudio.com): una pagina per ogni lingua e per ogni strumento,
 // es. /it/merge-pdf/ e /ja/compress-pdf/, con titolo, descrizione, hreflang e testo indicizzabile.
 // L'app è la stessa: la pagina indica solo lingua (data-page-lang) e strumento da aprire (data-tool).
 // Uso: npm run build:web (dopo vite build).
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { TOOLS } from '../src/tools.js';
 
-const SITE = 'https://pdf.ikonetsolutions.com';
+const SITE = 'https://offlinepdfstudio.com';
 const LANGS = ['it', 'en', 'es', 'fr', 'de', 'pt', 'ja'];
 const SLUGS = {
   reader: 'pdf-reader',
@@ -18,6 +18,9 @@ const SLUGS = {
 };
 const dicts = Object.fromEntries(await Promise.all(LANGS.map(async (l) => [l, (await import(`../src/i18n/locales/${l}.js`)).default])));
 const template = await readFile('dist/index.html', 'utf8');
+// AdSense solo sul sito (questa build non finisce nell'app nativa, che usa AdMob)
+const ADSENSE_CLIENT = 'ca-pub-1151868778464777';
+const ADSENSE_TAG = `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>`;
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const urlFor = (lang, toolId) => `${SITE}/${lang}/${toolId ? `${SLUGS[toolId]}/` : ''}`;
@@ -70,7 +73,9 @@ function page(lang, toolId) {
     <meta property="og:description" content="${esc(description)}" />
     <meta property="og:url" content="${urlFor(lang, toolId)}" />
     <meta property="og:type" content="website" />
-    <script type="application/ld+json">${JSON.stringify(structured)}</script>`)
+    <script type="application/ld+json">${JSON.stringify(structured)}</script>
+    <meta name="google-adsense-account" content="${ADSENSE_CLIENT}" />
+    ${ADSENSE_TAG}`)
     .replace('<div id="app"></div>', `<div id="app"></div>${seoBlock}`);
 }
 

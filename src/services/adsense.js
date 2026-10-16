@@ -11,6 +11,8 @@ let scriptLoaded = false;
 function loadScript() {
   if (scriptLoaded) return;
   scriptLoaded = true;
+  // Le pagine del sito lo includono già nell'HTML (scripts/build-seo-pages.mjs)
+  if (document.querySelector('script[src*="adsbygoogle.js"]')) return;
   const s = document.createElement('script');
   s.async = true;
   s.crossOrigin = 'anonymous';

@@ -15,7 +15,7 @@ Aggiornato al 14/10/2026.
   - unità banner, interstitial e apertura app in `.env.production`;
   - messaggio GDPR pubblicato (7 lingue, "Nega il consenso" attivo).
 - **Codemagic**: app `6ace8be37cdadaa492a14300`. Il workflow `ios-app-store` funziona; profilo iOS in `ios/profiles/`.
-- **Sito / versione web**: https://pdf.ikonetsolutions.com (ivoiro-server, `/var/www/documaster`, HTTPS Let's Encrypt).
+- **Sito / versione web**: https://offlinepdfstudio.com (dal 16/10/2026; pdf.ikonetsolutions.com rimanda qui ma serve ancora app-ads.txt, privacy e supporto) (ivoiro-server, `/var/www/documaster`, HTTPS Let's Encrypt).
   - Contiene l'app web completa, 162 pagine SEO (7 lingue × 22 strumenti + home), `sitemap.xml`, privacy, supporto e `app-ads.txt`.
   - Per pubblicare: `bash deploy/deploy-web.sh`.
 - **Statistiche del sito su Telegram** (dal 16/10/2026): bot @DocuMasterStats_bot, report ogni mattina e comandi /oggi /ieri /settimana.
@@ -35,9 +35,9 @@ Aggiornato al 14/10/2026.
    - rimettere la Francia nella disponibilità;
    - rivedere `ITSAppUsesNonExemptEncryption`.
 4. **AdSense per il sito**:
-   - richiedere l'approvazione per `pdf.ikonetsolutions.com` su adsense.google.com;
+   - richiedere l'approvazione per `offlinepdfstudio.com` su adsense.google.com (AdSense non accetta sottodomini);
    - poi mettere `VITE_ADSENSE_CLIENT` e `VITE_ADSENSE_SLOT` in `.env.production` e ripubblicare. Gli spazi pubblicitari sono già nel codice.
-5. **Google Search Console**: aggiungere il dominio e inviare `https://pdf.ikonetsolutions.com/sitemap.xml`.
+5. **Google Search Console**: aggiungere il dominio e inviare `https://offlinepdfstudio.com/sitemap.xml`.
 6. **Prossima versione** (dopo l'esito di Apple sulla 1.0.0). Contiene già:
    - il link "Opzioni privacy" (revoca del consenso GDPR, richiesto da Google);
    - **Lettore PDF** e **Leggi PDF ad alta voce** (voce del sistema tramite `@capacitor-community/text-to-speech`, OCR per le pagine scansionate). I PDF aperti da altre app ora si aprono nel lettore.

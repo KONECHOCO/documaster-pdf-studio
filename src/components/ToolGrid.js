@@ -40,7 +40,7 @@ export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro, sh
     </section>
     <footer class="footer">
       <p>DocuMaster PDF Studio · ${escapeHtml(t('home.footer'))} · © ${new Date().getFullYear()} Ikonet Solutions</p>
-      <p><a href="https://pdf.ikonetsolutions.com/privacy.html" target="_blank" rel="noopener">${escapeHtml(t('home.privacyPolicy'))}</a>${showPrivacyOptions ? ` · <button class="link-btn" id="privacy-options">${escapeHtml(t('home.privacyOptions'))}</button>` : ''}</p>
+      <p><a href="https://offlinepdfstudio.com/privacy.html" target="_blank" rel="noopener">${escapeHtml(t('home.privacyPolicy'))}</a>${showPrivacyOptions ? ` · <button class="link-btn" id="privacy-options">${escapeHtml(t('home.privacyOptions'))}</button>` : ''}</p>
     </footer>`;
 
   const search = container.querySelector('#tool-search-input');
