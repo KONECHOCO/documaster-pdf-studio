@@ -25,7 +25,7 @@ import { openProModal } from './components/ProModal.js';
 import { openReaderModal } from './components/ReaderModal.js';
 import { openModal, setContinueHandler, setViewHandler, closeTopModal, preparePdf, showError, escapeHtml } from './components/ui.js';
 import { TOOLS, PDF_TOOLS } from './tools.js';
-import { listenForIncomingFiles, listenForBackButton } from './platform/files.js';
+import { listenForIncomingFiles, listenForBackButton, isNative } from './platform/files.js';
 import { initMonetization, trackAdAction, subscribeMonetization, getMonetization, showPrivacyOptions } from './services/monetization.js';
 import { isPdfFile } from './utils/pdfHelper.js';
 
@@ -60,9 +60,16 @@ function toggleTheme() {
   renderAll();
 }
 
+// Statistiche anonime del sito: il server conta le richieste a /e (niente cookie, nessun dato del file)
+function countToolOpen(toolId) {
+  if (isNative || !/^https:/.test(location.protocol)) return;
+  fetch(`/e?t=${encodeURIComponent(toolId)}`, { keepalive: true, cache: 'no-store' }).catch(() => {});
+}
+
 /** Apre uno strumento, eventualmente con file già pronti (decifrati se protetti). */
 export function openTool(toolId, files = []) {
   trackAdAction();
+  countToolOpen(toolId);
   const file = files[0] || null;
   switch (toolId) {
     case 'scanner':

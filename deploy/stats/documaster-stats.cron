@@ -1,0 +1,5 @@
+# /etc/cron.d/documaster-stats — statistiche di pdf.ikonetsolutions.com su Telegram
+# Report di ieri ogni mattina alle 8 (ora italiana: il server è in UTC, 6:00 UTC = 8:00 estate / 7:00 inverno)
+0 6 * * * root /usr/bin/python3 /opt/documaster-stats/documaster_stats.py report ieri >/dev/null 2>&1
+# Risposte ai comandi /oggi /ieri /settimana
+* * * * * root /usr/bin/python3 /opt/documaster-stats/documaster_stats.py poll >/dev/null 2>&1
