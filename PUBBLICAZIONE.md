@@ -18,6 +18,9 @@ Aggiornato al 14/10/2026.
 - **Sito / versione web**: https://pdf.ikonetsolutions.com (ivoiro-server, `/var/www/documaster`, HTTPS Let's Encrypt).
   - Contiene l'app web completa, 162 pagine SEO (7 lingue × 22 strumenti + home), `sitemap.xml`, privacy, supporto e `app-ads.txt`.
   - Per pubblicare: `bash deploy/deploy-web.sh`.
+- **Statistiche del sito su Telegram** (dal 16/10/2026): bot @DocuMasterStats_bot, report ogni mattina e comandi /oggi /ieri /settimana.
+  - Lo script è `deploy/stats/documaster_stats.py` (sul server in `/opt/documaster-stats`, cron in `/etc/cron.d/documaster-stats`) e legge `/var/log/nginx/documaster.log`.
+  - Per cambiare il codice del bot: `powershell -ExecutionPolicy Bypass -File deploy\stats\collega-telegram.ps1`.
 
 ## ⏳ Da fare
 
