@@ -37,7 +37,7 @@ Aggiornato al 14/10/2026.
 4. **AdSense per il sito**: `offlinepdfstudio.com` verificato e **revisione richiesta il 16/10/2026** (codice `ca-pub-1151868778464777` già su tutte le pagine, `ads.txt` presente).
    - Dopo l'approvazione: creare un'unità Display, mettere `VITE_ADSENSE_SLOT` in `.env.production` e ripubblicare; attivare il messaggio GDPR in "Privacy e messaggi".
    - AdSense chiede anche di verificare l'indirizzo (PIN per posta) per sbloccare i pagamenti.
-5. **Google Search Console**: aggiungere il dominio e inviare `https://offlinepdfstudio.com/sitemap.xml`.
+5. **Google Search Console**: proprietà `https://offlinepdfstudio.com/` verificata (file `public/google6797cf6280bde93d.html`, da non cancellare) e sitemap inviata il 16/10/2026.
 6. **Prossima versione** (dopo l'esito di Apple sulla 1.0.0). Contiene già:
    - il link "Opzioni privacy" (revoca del consenso GDPR, richiesto da Google);
    - **Lettore PDF** e **Leggi PDF ad alta voce** (voce del sistema tramite `@capacitor-community/text-to-speech`, OCR per le pagine scansionate). I PDF aperti da altre app ora si aprono nel lettore.
