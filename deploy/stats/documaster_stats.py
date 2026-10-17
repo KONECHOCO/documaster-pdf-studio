@@ -98,10 +98,15 @@ def read_lines(path):
 
 
 def collect(start, end):
-    """Statistiche tra start (incluso) ed end (escluso), datetime con fuso orario."""
-    visitors, bot_hits, pages, langs, refs, tools = set(), Counter(), Counter(), Counter(), Counter(), Counter()
+    """Statistiche tra start (incluso) ed end (escluso), datetime con fuso orario.
+
+    Visitatore vero = chi scarica anche il JavaScript dell'app (/assets/*.js): i programmi che
+    scandagliano i siti chiedono la pagina ma non caricano gli script, anche se si spacciano per browser.
+    """
+    bot_hits, tools = Counter(), Counter()
     tool_users = {}
-    views = 0
+    loaded_app = set()
+    hits = []  # (chi, pagina, provenienza)
     for path in log_files():
         for raw in read_lines(path):
             m = LINE.match(raw)
@@ -127,21 +132,33 @@ def collect(start, end):
                 tool = urllib.parse.parse_qs(url.query).get('t', ['?'])[0][:30]
                 tool_users.setdefault(tool, set()).add(who)
                 tools[tool] += 1
-                visitors.add(who)
+                continue
+            if p.startswith('/assets/') and p.endswith('.js') and status in ('200', '304'):
+                loaded_app.add(who)
                 continue
             if m['method'] != 'GET' or status not in ('200', '304') or ASSET.search(p):
                 continue
-            views += 1
-            visitors.add(who)
-            pages[p] += 1
-            first = p.strip('/').split('/')[0]
-            langs[first if first in LANGS else 'home'] += 1
-            ref = m['ref']
-            if ref and ref != '-':
-                host = urllib.parse.urlsplit(ref).hostname or ''
-                if host and not any(s in host for s in SITES):
-                    host = re.sub(r'^(www\.|m\.)', '', host)
-                    refs[host] += 1
+            if re.match(r'^/google[0-9a-f]+\.html$', p):
+                continue  # verifiche di Google Search Console
+            hits.append((who, p, m['ref']))
+
+    real = loaded_app | {w for users in tool_users.values() for w in users}
+    pages, langs, refs = Counter(), Counter(), Counter()
+    views = 0
+    suspects = set()
+    for who, p, ref in hits:
+        if who not in real:
+            suspects.add(who)
+            continue
+        views += 1
+        pages[p] += 1
+        first = p.strip('/').split('/')[0]
+        langs[first if first in LANGS else 'home'] += 1
+        if ref and ref != '-':
+            host = urllib.parse.urlsplit(ref).hostname or ''
+            if host and not any(s in host for s in SITES):
+                refs[re.sub(r'^(www\.|m\.)', '', host)] += 1
+    visitors = {w for w, _, _ in hits if w in real} | {w for users in tool_users.values() for w in users}
     return {
         'visitors': len(visitors),
         'views': views,
@@ -151,6 +168,7 @@ def collect(start, end):
         'tools': tools,
         'tool_users': {k: len(v) for k, v in tool_users.items()},
         'bots': bot_hits,
+        'suspects': len(suspects),
     }
 
 
@@ -190,6 +208,8 @@ def build_report(name):
     lines += ['', '🔗 <b>Da dove arrivano</b>', top(s['refs'], 5)]
     lines += ['', '🌍 <b>Lingua delle pagine</b>', top(s['langs'], 7, lambda k: k.upper() if k != 'home' else 'home')]
     lines += ['', '📑 <b>Pagine più viste</b>', top(s['pages'], 5)]
+    if s['suspects']:
+        lines += ['', f'🕵️ Visite automatiche escluse (scansioni, non persone): {s["suspects"]}']
     if s['bots']:
         lines += ['', f'🤖 Robot dei motori di ricerca: {sum(s["bots"].values())} pagine lette']
         g = s['bots'].get('googlebot', 0)
