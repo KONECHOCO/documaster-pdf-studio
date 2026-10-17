@@ -67,9 +67,9 @@ function countToolOpen(toolId) {
 }
 
 /** Apre uno strumento, eventualmente con file già pronti (decifrati se protetti). */
-export function openTool(toolId, files = []) {
+export function openTool(toolId, files = [], { auto = false } = {}) {
   trackAdAction();
-  countToolOpen(toolId);
+  if (!auto) countToolOpen(toolId);
   const file = files[0] || null;
   switch (toolId) {
     case 'scanner':
@@ -182,7 +182,7 @@ window.addEventListener('drop', (e) => {
 
 // Pagine del sito dedicate a uno strumento (/it/merge-pdf/…): lo strumento si apre subito
 const pageTool = document.documentElement.dataset.tool;
-if (pageTool && TOOLS.some((tool) => tool.id === pageTool)) openTool(pageTool);
+if (pageTool && TOOLS.some((tool) => tool.id === pageTool)) openTool(pageTool, [], { auto: true });
 
 // Aggancio per gli script di screenshot degli store (scripts/capture-store-screenshots.mjs)
 window.__documaster = { openTool, openProModal };

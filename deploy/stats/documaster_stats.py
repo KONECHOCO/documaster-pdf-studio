@@ -36,6 +36,13 @@ SITES = ('offlinepdfstudio.com', 'pdf.ikonetsolutions.com')
 
 LINE = re.compile(r'(?P<ip>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d{3}) \S+ "(?P<ref>[^"]*)" "(?P<ua>[^"]*)"')
 BOT = re.compile(r'bot|crawl|spider|slurp|bingpreview|facebookexternalhit|embedly|preview|curl|wget|python|go-http|headless|lighthouse|monitor|scan|httpclient|java/|okhttp|axios|node-fetch|semrush|ahrefs|petal|bytespider|gptbot|claude|perplexity', re.I)
+# Indirizzi dei programmi di scansione: chi li chiede non è una persona
+PROBE = re.compile(r'/\.(git|env|aws|ssh|svn|vscode|DS_Store)|wp-|\.php|/admin|/phpmyadmin|/cgi-bin|/actuator|/vendor/phpunit|/\.well-known/(?!acme)|/server-status|/config\.|/backup|\.sql|\.bak|/xmlrpc|/boaform|/HNAP1', re.I)
+# Pagine vere del sito
+VALID = re.compile(r'^/((it|en|es|fr|de|pt|ja)/([a-z0-9-]+/)?)?$|^/(privacy|support)\.html$')
+# Reti dei motori di ricerca (Googlebot che esegue il JavaScript con un nome da browser)
+CRAWLER_NETS = ('66.249.', '74.125.', '192.178.', '34.100.', '40.77.', '157.55.', '207.46.', '17.')
+MAX_PAGES_PER_PERSON = 30
 ASSET = re.compile(r'^/(assets|vendor|fonts)/|\.(js|mjs|css|png|jpe?g|svg|ico|webp|woff2?|ttf|wasm|json|map|txt|xml|gz|traineddata)$', re.I)
 LANGS = ('it', 'en', 'es', 'fr', 'de', 'pt', 'ja')
 TOOL_NAMES = {
@@ -106,6 +113,7 @@ def collect(start, end):
     bot_hits, tools = Counter(), Counter()
     tool_users = {}
     loaded_app = set()
+    probers = set()
     hits = []  # (chi, pagina, provenienza)
     for path in log_files():
         for raw in read_lines(path):
@@ -128,6 +136,11 @@ def collect(start, end):
                     bot_hits[name.group(1).lower() if name else 'altri'] += 1
                 continue
             who = hashlib.sha256(f"{m['ip']}|{ua}".encode()).hexdigest()[:16]
+            if m['ip'].startswith(CRAWLER_NETS):
+                continue
+            if PROBE.search(p):
+                probers.add(who)
+                continue
             if p == '/e':
                 tool = urllib.parse.parse_qs(url.query).get('t', ['?'])[0][:30]
                 tool_users.setdefault(tool, set()).add(who)
@@ -140,9 +153,16 @@ def collect(start, end):
                 continue
             if re.match(r'^/google[0-9a-f]+\.html$', p):
                 continue  # verifiche di Google Search Console
+            if not VALID.match(p):
+                probers.add(who)  # pagina inesistente: tipico delle scansioni
+                continue
             hits.append((who, p, m['ref']))
 
-    real = loaded_app | {w for users in tool_users.values() for w in users}
+    per_person = Counter(w for w, _, _ in hits)
+    real = {w for w in loaded_app if w not in probers and per_person[w] <= MAX_PAGES_PER_PERSON}
+    tool_users = {k: {w for w in v if w in real} for k, v in tool_users.items()}
+    tool_users = {k: v for k, v in tool_users.items() if v}
+    tools = Counter({k: tools[k] for k in tool_users})
     pages, langs, refs = Counter(), Counter(), Counter()
     views = 0
     suspects = set()
@@ -159,6 +179,7 @@ def collect(start, end):
             if host and not any(s in host for s in SITES):
                 refs[re.sub(r'^(www\.|m\.)', '', host)] += 1
     visitors = {w for w, _, _ in hits if w in real} | {w for users in tool_users.values() for w in users}
+    suspects |= {w for w in probers | {w for w, _, _ in hits} if w not in real}
     return {
         'visitors': len(visitors),
         'views': views,
