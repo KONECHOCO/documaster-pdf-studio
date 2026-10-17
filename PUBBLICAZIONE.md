@@ -26,7 +26,7 @@ Aggiornato al 14/10/2026.
 
 ## ⏳ Da fare
 
-1. **Android / Google Play**
+1. **Android / Google Play** — app creata su Play Console il 17/10/2026 (id `4976308306820947948`, account personale: serve un **test chiuso con 12 tester per 14 giorni** prima della produzione). Scheda en-US salvata in bozza (testi, icona, grafica, 7 screenshot `*-android-1080x1920.png`).
    - Generare un keystore e caricarlo **tu** su Codemagic (Code signing identities → Android keystores) con il nome `documaster_android`. Le password non le inserisco io.
    - Poi avvio la build `android-release` (AAB).
    - Su Play Console: creare l'app `com.ikonet.documaster`, il prodotto in-app `documaster_pro` a 2,99 € e fare il primo caricamento dell'AAB a mano.

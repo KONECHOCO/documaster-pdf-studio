@@ -20,7 +20,7 @@ await page.setContent(`<html><head><style>
 </style></head><body>
   <div class="ic">${svg.replace('width="1024" height="1024"', 'width="250" height="250"')}</div>
   <div><h1>DocuMaster</h1><p>PDF Scanner · OCR · Sign · Compress</p>
-  <div class="chips"><span class="chip">🔒 100% on-device</span><span class="chip">22 tools</span><span class="chip">7 languages</span></div></div>
+  <div class="chips"><span class="chip">🔒 100% on-device</span><span class="chip">24 tools</span><span class="chip">7 languages</span></div></div>
 </body></html>`);
 await page.screenshot({ path: 'store-assets/play/feature-1024x500.png' });
 await browser.close();

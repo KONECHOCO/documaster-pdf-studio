@@ -84,6 +84,22 @@ await page.evaluate(([b64, title]) => {
 // 1) Home
 await shot('01-home');
 
+// 1b) Lettore PDF con la lettura ad alta voce aperta (frase evidenziata)
+await page.evaluate(async () => {
+  window.__documaster.openTool('reader', [window.__sample]);
+  await new Promise((r) => setTimeout(r, 2500));
+  document.querySelector('[data-act="speak"]')?.click();
+  await new Promise((r) => setTimeout(r, 2500));
+  const play = document.querySelector('[data-act="ttsPlay"]');
+  if (play?.getAttribute('aria-label') && document.querySelector('.reader-speaking')) {
+    // ferma la voce ma lascia la frase evidenziata
+    if (play.innerHTML.includes('rect')) play.click();
+  }
+  document.querySelectorAll('.toast').forEach((t) => t.remove());
+});
+await shot('01b-lettore');
+await closeModals();
+
 // 2) Scanner: foto simulata di un foglio storto sul tavolo, bordi rilevati
 await page.evaluate(async (doc) => {
   window.__documaster.openTool('scanner');
