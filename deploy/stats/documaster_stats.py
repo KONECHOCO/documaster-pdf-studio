@@ -104,6 +104,56 @@ def read_lines(path):
         yield from f
 
 
+# ---------------------------------------------------------------- Paese dall'IP (DB-IP Country Lite, CC BY 4.0)
+GEO_FILE = '/var/lib/documaster-stats/geo.csv.gz'
+_geo = None
+
+
+def _load_geo():
+    import ipaddress
+    v4, v6 = ([], []), ([], [])
+    try:
+        with gzip.open(GEO_FILE, 'rt', encoding='utf-8') as f:
+            for line in f:
+                a, b, cc = line.rstrip('\n').split(',')
+                if ':' in a:
+                    v6[0].append(int(ipaddress.IPv6Address(a)))
+                    v6[1].append((int(ipaddress.IPv6Address(b)), cc))
+                else:
+                    v4[0].append(int(ipaddress.IPv4Address(a)))
+                    v4[1].append((int(ipaddress.IPv4Address(b)), cc))
+    except FileNotFoundError:
+        pass
+    return v4, v6
+
+
+def country_of(ip):
+    """Codice ISO del paese ('ZZ' se sconosciuto)."""
+    global _geo
+    import bisect
+    import ipaddress
+    if _geo is None:
+        _geo = _load_geo()
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return 'ZZ'
+    starts, ends = _geo[1] if addr.version == 6 else _geo[0]
+    n = int(addr)
+    i = bisect.bisect_right(starts, n) - 1
+    if i >= 0 and n <= ends[i][0]:
+        return ends[i][1]
+    return 'ZZ'
+
+
+def device_of(ua):
+    if re.search(r'iPad|Tablet', ua):
+        return 'tablet'
+    if re.search(r'Mobile|iPhone|Android', ua):
+        return 'telefono'
+    return 'computer'
+
+
 def collect(start, end):
     """Statistiche tra start (incluso) ed end (escluso), datetime con fuso orario.
 
@@ -115,6 +165,7 @@ def collect(start, end):
     loaded_app = set()
     probers = set()
     hits = []  # (chi, pagina, provenienza)
+    ips, uas = {}, {}
     for path in log_files():
         for raw in read_lines(path):
             m = LINE.match(raw)
@@ -138,6 +189,7 @@ def collect(start, end):
             who = hashlib.sha256(f"{m['ip']}|{ua}".encode()).hexdigest()[:16]
             if m['ip'].startswith(CRAWLER_NETS):
                 continue
+            ips[who], uas[who] = m['ip'], ua
             if PROBE.search(p):
                 probers.add(who)
                 continue
@@ -181,6 +233,8 @@ def collect(start, end):
     visitors = {w for w, _, _ in hits if w in real} | {w for users in tool_users.values() for w in users}
     suspects |= {w for w in probers | {w for w, _, _ in hits} if w not in real}
     return {
+        'countries': Counter(country_of(ips.get(w, '')) for w in visitors),
+        'devices': Counter(device_of(uas.get(w, '')) for w in visitors),
         'visitors': len(visitors),
         'views': views,
         'pages': pages,
@@ -203,6 +257,10 @@ def period(name):
         return start, today, f"ultimi 7 giorni ({start:%d/%m}–{(today - timedelta(days=1)):%d/%m})"
     start = today - timedelta(days=1)
     return start, today, f"ieri {start:%a %d/%m}".replace('Mon', 'lun').replace('Tue', 'mar').replace('Wed', 'mer').replace('Thu', 'gio').replace('Fri', 'ven').replace('Sat', 'sab').replace('Sun', 'dom')
+
+
+def flag(cc):
+    return ''.join(chr(0x1F1E6 + ord(c) - 65) for c in cc) if len(cc) == 2 and cc.isalpha() and cc != 'ZZ' else '🏳'
 
 
 def esc(s):
@@ -236,7 +294,9 @@ def build_report(name):
         g = s['bots'].get('googlebot', 0)
         if g:
             lines.append(f'  • Googlebot: <b>{g}</b>')
-    lines += ['', 'Comandi: /oggi · /ieri · /settimana']
+    if s['countries']:
+        lines += ['', '🗺 <b>Paesi</b>', top(s['countries'], 5, lambda k: f'{flag(k)} {k}')]
+    lines += ['', 'Comandi: /oggi · /ieri · /settimana · /pdf · /pdfmese']
     return '\n'.join(lines)
 
 
@@ -269,6 +329,14 @@ def link():
 
 
 def poll():
+    # Un solo poll alla volta: il report PDF può durare più di un minuto
+    import fcntl
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+    lock = open(STATE_FILE + '.lock', 'w')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return
     env = load_env()
     if not env.get('TELEGRAM_TOKEN') or not env.get('TELEGRAM_CHAT_ID'):
         return
@@ -277,6 +345,7 @@ def poll():
     res = telegram('getUpdates', {'offset': offset, 'timeout': 0})
     for u in res.get('result', []):
         state['offset'] = u['update_id'] + 1
+        save_state(state)
         msg = u.get('message') or {}
         # Si risponde solo alla chat collegata
         if str(msg.get('chat', {}).get('id')) != env['TELEGRAM_CHAT_ID']:
@@ -284,8 +353,12 @@ def poll():
         cmd = (msg.get('text') or '').strip().lower().split('@')[0]
         if cmd in ('/oggi', '/ieri', '/settimana'):
             send(build_report(cmd[1:]))
+        elif cmd in ('/pdf', '/pdfmese'):
+            send('⏳ Preparo il report PDF…')
+            import documaster_report
+            documaster_report.run('mese' if cmd == '/pdfmese' else 'settimana', True, include_today=True)
         elif cmd in ('/start', '/help', '/aiuto'):
-            send('Comandi: /oggi · /ieri · /settimana')
+            send('Comandi: /oggi · /ieri · /settimana · /pdf (report PDF 7 giorni) · /pdfmese (30 giorni)')
     save_state(state)
 
 

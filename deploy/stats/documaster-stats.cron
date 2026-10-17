@@ -1,5 +1,14 @@
 # /etc/cron.d/documaster-stats — statistiche di offlinepdfstudio.com su Telegram
-# Report di ieri ogni mattina alle 8 (ora italiana: il server è in UTC, 6:00 UTC = 8:00 estate / 7:00 inverno)
+# Ora del server: UTC (6:00 UTC = 8:00 in Italia con l'ora legale, 7:00 con l'ora solare)
+# Report di ieri ogni mattina
 0 6 * * * root /usr/bin/python3 /opt/documaster-stats/documaster_stats.py report ieri >/dev/null 2>&1
-# Risposte ai comandi /oggi /ieri /settimana
+# Riepiloghi giornalieri salvati (i log di nginx durano 14 giorni)
+30 5 * * * root /usr/bin/python3 /opt/documaster-stats/documaster_report.py history >/dev/null 2>&1
+# Report PDF settimanale ogni lunedì
+5 6 * * 1 root /usr/bin/python3 /opt/documaster-stats/documaster_report.py settimana --send >/dev/null 2>&1
+# Report PDF mensile il primo del mese
+10 6 1 * * root /usr/bin/python3 /opt/documaster-stats/documaster_report.py mese --send >/dev/null 2>&1
+# Database dei paesi (DB-IP Country Lite), aggiornato ogni mese
+0 4 3 * * root cd /var/lib/documaster-stats && curl -sfL -o geo.new.gz https://download.db-ip.com/free/dbip-country-lite-$(date +\%Y-\%m).csv.gz && mv geo.new.gz geo.csv.gz
+# Risposte ai comandi /oggi /ieri /settimana /pdf /pdfmese
 * * * * * root /usr/bin/python3 /opt/documaster-stats/documaster_stats.py poll >/dev/null 2>&1

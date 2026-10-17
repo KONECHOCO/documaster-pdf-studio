@@ -20,6 +20,8 @@ Aggiornato al 14/10/2026.
   - Per pubblicare: `bash deploy/deploy-web.sh`.
 - **Statistiche del sito su Telegram** (dal 16/10/2026): bot @DocuMasterStats_bot, report ogni mattina e comandi /oggi /ieri /settimana.
   - Lo script è `deploy/stats/documaster_stats.py` (sul server in `/opt/documaster-stats`, cron in `/etc/cron.d/documaster-stats`) e legge `/var/log/nginx/documaster.log`.
+  - Report PDF (`deploy/stats/documaster_report.py`): ogni lunedì (7 giorni) e il 1° del mese (30 giorni), oppure con /pdf e /pdfmese. Paesi da DB-IP Country Lite (CC BY 4.0, aggiornato ogni mese); i riepiloghi giornalieri restano in `/var/lib/documaster-stats/history.json`.
+  - Guadagni pubblicitari nel report: da collegare dopo l'approvazione AdSense/AdMob (autorizzazione Google una tantum); il report legge `/var/lib/documaster-stats/ads.json`.
   - Per cambiare il codice del bot: `powershell -ExecutionPolicy Bypass -File deploy\stats\collega-telegram.ps1`.
 
 ## ⏳ Da fare
