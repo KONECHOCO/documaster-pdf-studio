@@ -1556,3 +1556,29 @@ html {
     display: none;
   }
 }
+.seo-content h3 {
+  font-size: 0.98rem;
+  color: var(--text-primary);
+  margin: 1rem 0 0.2rem;
+}
+.seo-content ul {
+  padding-left: 1.2rem;
+}
+.seo-content ul.seo-links {
+  padding-left: 0;
+}
+.seo-tool-list li {
+  margin-bottom: 0.35rem;
+}
+.seo-tip {
+  margin-top: 1.2rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+.seo-footer {
+  margin-top: 1.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
