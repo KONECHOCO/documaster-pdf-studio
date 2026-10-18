@@ -12,6 +12,7 @@ export default {
     readGuide: 'ガイドを読む',
     openTool: 'ツールを開く',
     updated: '更新日',
+    donate: '☕ 開発を応援する',
   },
   tools: {
     reader: {

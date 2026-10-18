@@ -32,6 +32,7 @@ const ADSENSE_TAG = `<script async src="https://pagead2.googlesyndication.com/pa
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const urlFor = (lang, toolId) => `${SITE}/${lang}/${toolId ? `${SLUGS[toolId]}/` : ''}`;
 const today = new Date().toISOString().slice(0, 10);
+const DONATE_URL = 'https://www.paypal.com/donate/?hosted_button_id=P4M7TSSVDX2F8';
 
 function alternates(pathFor) {
   return [
@@ -46,7 +47,8 @@ function footerLinks(lang) {
   if (!c) return '';
   const L = c.labels;
   const guides = c.guides?.length ? ` · <a href="/${lang}/guides/">${esc(L.guides)}</a>` : '';
-  return `<p class="seo-footer"><a href="/${lang}/about/">${esc(L.about)}</a> · <a href="/${lang}/contact/">${esc(L.contact)}</a> · <a href="/privacy.html">${esc(L.privacy)}</a>${guides}</p>`;
+  const donate = L.donate ? ` · <a href="${DONATE_URL}" target="_blank" rel="noopener">${esc(L.donate)}</a>` : '';
+  return `<p class="seo-footer"><a href="/${lang}/about/">${esc(L.about)}</a> · <a href="/${lang}/contact/">${esc(L.contact)}</a> · <a href="/privacy.html">${esc(L.privacy)}</a>${guides}${donate}</p>`;
 }
 
 /** Sezioni lunghe per uno strumento (se il testo esiste in questa lingua). */

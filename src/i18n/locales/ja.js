@@ -24,6 +24,7 @@ export default {
     footer: '100%ローカル処理',
     privacyPolicy: 'プライバシー',
     privacyOptions: 'プライバシー設定',
+    donate: '☕ 開発を応援する',
   },
   categories: {
     all: 'すべて',
@@ -338,6 +339,7 @@ export default {
     voiceMaybeMissing: 'デバイスに{lang}の音声がない可能性があります。利用可能な音声で読み上げます。',
   },
   result: {
+    donate: 'お役に立ちましたか？コーヒー1杯分の応援をお願いします ☕',
     title: '完了しました！',
     saveShare: '保存・共有',
     download: 'ダウンロード',

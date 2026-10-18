@@ -24,6 +24,7 @@ export default {
     footer: 'Processamento 100% local',
     privacyPolicy: 'Privacidade',
     privacyOptions: 'Opções de privacidade',
+    donate: '☕ Apoie o projeto',
   },
   categories: {
     all: 'Todas',
@@ -338,6 +339,7 @@ export default {
     voiceMaybeMissing: 'O dispositivo pode não ter uma voz em {lang}: será usada a voz disponível.',
   },
   result: {
+    donate: 'Foi útil? Me pague um café ☕',
     title: 'Pronto!',
     saveShare: 'Salvar ou compartilhar',
     download: 'Baixar',

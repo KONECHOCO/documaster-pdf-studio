@@ -3,6 +3,7 @@ import { t } from '../i18n/index.js';
 import { TOOLS, CATEGORIES } from '../tools.js';
 import { escapeHtml, ICONS } from './ui.js';
 import { renderAdSlot } from '../services/adsense.js';
+import { DONATE_URL, donateAllowed } from '../services/donate.js';
 
 let activeCategory = 'all';
 let searchQuery = '';
@@ -41,6 +42,7 @@ export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro, sh
     <footer class="footer">
       <p>DocuMaster PDF Studio · ${escapeHtml(t('home.footer'))} · © ${new Date().getFullYear()} Ikonet Solutions</p>
       <p><a href="https://offlinepdfstudio.com/privacy.html" target="_blank" rel="noopener">${escapeHtml(t('home.privacyPolicy'))}</a>${showPrivacyOptions ? ` · <button class="link-btn" id="privacy-options">${escapeHtml(t('home.privacyOptions'))}</button>` : ''}</p>
+      ${donateAllowed() ? `<p><a class="btn btn-donate" href="${DONATE_URL}" target="_blank" rel="noopener">${escapeHtml(t('home.donate'))}</a></p>` : ''}
     </footer>`;
 
   const search = container.querySelector('#tool-search-input');

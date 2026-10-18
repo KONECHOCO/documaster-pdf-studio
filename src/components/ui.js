@@ -6,6 +6,7 @@ import { UserError, isPdfFile, readBytes } from '../utils/pdfHelper.js';
 import { looksEncrypted, decryptPdfBytes } from '../utils/qpdf.js';
 import { trackAdAction, getMonetization } from '../services/monetization.js';
 import { renderAdSlot } from '../services/adsense.js';
+import { DONATE_URL, donateAllowed } from '../services/donate.js';
 
 export function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -409,6 +410,15 @@ export function showResult({ blob, filename, details = [], title }) {
     actions.appendChild(cont);
   }
   m.body.appendChild(actions);
+  if (donateAllowed()) {
+    const donate = document.createElement('a');
+    donate.className = 'result-donate';
+    donate.href = DONATE_URL;
+    donate.target = '_blank';
+    donate.rel = 'noopener';
+    donate.textContent = t('result.donate');
+    m.body.appendChild(donate);
+  }
   const ad = document.createElement('div');
   m.body.appendChild(ad);
   renderAdSlot(ad);

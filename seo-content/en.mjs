@@ -13,6 +13,7 @@ export default {
     readGuide: 'Read the guide',
     openTool: 'Open the tool',
     updated: 'Updated',
+    donate: '☕ Support the project',
   },
   tools: {
     reader: {

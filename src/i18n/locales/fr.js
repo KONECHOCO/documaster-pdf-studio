@@ -24,6 +24,7 @@ export default {
     footer: 'Traitement 100 % local',
     privacyPolicy: 'Confidentialité',
     privacyOptions: 'Options de confidentialité',
+    donate: '☕ Soutenir le projet',
   },
   categories: {
     all: 'Tous',
@@ -338,6 +339,7 @@ export default {
     voiceMaybeMissing: 'L’appareil n’a peut-être pas de voix {lang} : la voix disponible sera utilisée.',
   },
   result: {
+    donate: 'Ça vous a aidé ? Offrez-moi un café ☕',
     title: 'Terminé !',
     saveShare: 'Enregistrer ou partager',
     download: 'Télécharger',

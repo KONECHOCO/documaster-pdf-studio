@@ -12,6 +12,7 @@ export default {
     readGuide: 'Lee la guía',
     openTool: 'Abrir la herramienta',
     updated: 'Actualizado',
+    donate: '☕ Apoya el proyecto',
   },
   tools: {
     reader: {
