@@ -33,7 +33,7 @@ Aggiornato al 14/10/2026.
    - Su Play Console: creare l'app `com.ikonet.documaster`, il prodotto in-app `documaster_pro` a 2,99 € e fare il primo caricamento dell'AAB a mano.
    - Fatto il 17/10/2026: scheda en-US, categoria Produttività, contatti, privacy, annunci, accesso, ID pubblicità, governo/finanza/salute, pubblico 18+, sicurezza dei dati; prodotto `documaster_pro` attivo (2,45 € + IVA = 2,99 € in Italia).
    - Test chiusi: «Alpha» (gruppo `testers-community@googlegroups.com`) e «Test chiuso tester4» (elenco tester4), 178 paesi senza Francia, release 1 (1.0.0) in bozza in entrambi.
-   - Mancano: classificazione IARC (serve l'ok dell'utente sui termini), traduzioni della scheda, invio in revisione.
+   - IARC fatto, release approvate: **entrambi i test chiusi sono attivi dal 17/10/2026 21:49** (1.0.0 disponibile per i tester). Dopo 14 giorni con almeno 12 tester attivi (dal 31/10/2026) si può chiedere l'accesso alla produzione. Mancano le traduzioni della scheda Play.
    - Testi e grafiche sono pronti in `store-assets/listing.json` (campi `playShort` e `description`) e in `store-assets/play/`.
 2. **AdMob → "Aggiungi store"** sulle due app, appena App Store e Play le approvano. Fino ad allora la pubblicazione degli annunci resta limitata.
 3. **Francia**: dichiarazione di cifratura ANSSI **depositata il 14/10/2026** (demarche.numerique.gouv.fr, dossier n° 34672087, documenti in `docs/anssi/`). Quando arriva l'attestation con il numero di pratica:
