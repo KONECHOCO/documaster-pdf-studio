@@ -51,7 +51,7 @@ TOOL_NAMES = {
     'pdfToWord': 'PDF → Word', 'pdfToImg': 'PDF → JPG', 'imgToPdf': 'JPG → PDF', 'pdfToText': 'PDF → testo',
     'organize': 'Organizza', 'rotate': 'Ruota', 'watermark': 'Filigrana', 'pageNumbers': 'Numeri di pagina',
     'protect': 'Proteggi', 'unlock': 'Sblocca', 'redact': 'Oscura', 'metadata': 'Metadati', 'flatten': 'Appiattisci',
-    'analytics': 'Analisi', 'pro': 'Pagina Pro',
+    'analytics': 'Analisi', 'pro': 'Pagina Pro', 'donate': 'Clic su Sostieni (PayPal)',
 }
 
 
@@ -281,8 +281,11 @@ def build_report(name):
         prev = collect(start - timedelta(days=1), start)
         diff = s['visitors'] - prev['visitors']
         lines.append(f'↕️ Rispetto al giorno prima: {"+" if diff >= 0 else ""}{diff} visitatori')
-    if s['tools']:
-        used = Counter({k: s['tool_users'].get(k, 0) for k in s['tools']})
+    donate_clicks = s['tools'].get('donate', 0)
+    if donate_clicks:
+        lines.append(f'☕ Clic su «Sostieni il progetto»: <b>{donate_clicks}</b> (importi su PayPal)')
+    if any(k != 'donate' for k in s['tools']):
+        used = Counter({k: s['tool_users'].get(k, 0) for k in s['tools'] if k != 'donate'})
         lines += ['', '🛠 <b>Strumenti aperti</b> (persone)', top(used, 8, lambda k: TOOL_NAMES.get(k, k))]
     lines += ['', '🔗 <b>Da dove arrivano</b>', top(s['refs'], 5)]
     lines += ['', '🌍 <b>Lingua delle pagine</b>', top(s['langs'], 7, lambda k: k.upper() if k != 'home' else 'home')]

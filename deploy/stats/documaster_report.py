@@ -278,6 +278,9 @@ def build_pdf(days, path, include_today=False):
     story.append(Paragraph(f'offlinepdfstudio.com · dal {g["start"]:%d/%m/%Y} al {until} · generato il {datetime.now(st.TZ):%d/%m/%Y %H:%M}', S['sub']))
     story.append(Spacer(1, 8 * mm))
 
+    donate_clicks = Counter(p['tools']).get('donate', 0)
+    p['tool_users'] = Counter({k: v for k, v in Counter(p['tool_users']).items() if k != 'donate'})
+    p['tools'] = Counter({k: v for k, v in Counter(p['tools']).items() if k != 'donate'})
     tools_total = sum(p['tool_users'].values())
     per_visit = f'{p["views"] / p["visitors"]:.1f}'.replace('.', ',') if p['visitors'] else '—'
     trend = ''
@@ -339,6 +342,7 @@ def build_pdf(days, path, include_today=False):
     ads = load_ads()
     block = [Paragraph('Pubblicità', S['h2'])]
     if ads and ads.get('rows'):
+        ads['rows'].append({'source': 'Donazioni PayPal (sito)', 'period': f'{donate_clicks} clic', 'earnings': 'su PayPal'})
         rows = [[r['source'], r['period'], str(r.get('impressions', '—')), str(r.get('clicks', '—')), r.get('earnings', '—')] for r in ads['rows']]
         block.append(table(rows, ['Origine', 'Periodo', 'Impressioni', 'Clic', 'Guadagno'], [45, 40, 30, 25, 40], numeric=3))
         if ads.get('note'):
@@ -347,7 +351,8 @@ def build_pdf(days, path, include_today=False):
         block.append(table([
             ['AdSense (sito web)', 'In revisione da Google (richiesta del 16/10/2026)', '—'],
             ['AdMob (app iOS)', "In attesa dell'approvazione Apple", '—'],
-            ['AdMob (app Android)', 'App non ancora pubblicata su Google Play', '—'],
+            ['AdMob (app Android)', 'In test chiuso su Google Play', '—'],
+            ['Donazioni PayPal (sito)', f'{donate_clicks} clic su «Sostieni il progetto»', 'su PayPal'],
         ], ['Origine', 'Stato', 'Guadagno'], [45, 105, 30]))
         block.append(Paragraph(
             'I guadagni compariranno qui in automatico dopo le approvazioni, quando gli account AdSense e AdMob saranno collegati al report.',

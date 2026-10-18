@@ -91,5 +91,7 @@ export function renderToolGrid(container, { onSelectTool, onOpenPro, showPro, sh
   container.querySelector('#home-pro')?.addEventListener('click', onOpenPro);
   renderAdSlot(container.querySelector('#home-ad'));
   container.querySelector('#privacy-options')?.addEventListener('click', onPrivacyOptions);
+  // Statistiche anonime: clic sul pulsante delle donazioni
+  container.querySelector('.btn-donate')?.addEventListener('click', () => fetch('/e?t=donate', { keepalive: true, cache: 'no-store' }).catch(() => {}));
   renderCards();
 }

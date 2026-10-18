@@ -417,6 +417,7 @@ export function showResult({ blob, filename, details = [], title }) {
     donate.target = '_blank';
     donate.rel = 'noopener';
     donate.textContent = t('result.donate');
+    donate.addEventListener('click', () => fetch('/e?t=donate', { keepalive: true, cache: 'no-store' }).catch(() => {}));
     m.body.appendChild(donate);
   }
   const ad = document.createElement('div');

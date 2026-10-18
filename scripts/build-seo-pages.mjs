@@ -47,7 +47,7 @@ function footerLinks(lang) {
   if (!c) return '';
   const L = c.labels;
   const guides = c.guides?.length ? ` · <a href="/${lang}/guides/">${esc(L.guides)}</a>` : '';
-  const donate = L.donate ? ` · <a href="${DONATE_URL}" target="_blank" rel="noopener">${esc(L.donate)}</a>` : '';
+  const donate = L.donate ? ` · <a href="${DONATE_URL}" target="_blank" rel="noopener" onclick="navigator.sendBeacon&&navigator.sendBeacon('/e?t=donate')">${esc(L.donate)}</a>` : '';
   return `<p class="seo-footer"><a href="/${lang}/about/">${esc(L.about)}</a> · <a href="/${lang}/contact/">${esc(L.contact)}</a> · <a href="/privacy.html">${esc(L.privacy)}</a>${guides}${donate}</p>`;
 }
 
