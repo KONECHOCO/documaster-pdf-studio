@@ -48,7 +48,7 @@ if (device === 'desktop') {
   await context.addInitScript(() => {
     window.getDigitalGoodsService = async () => ({
       getDetails: async (ids) => ids.map((itemId) => ({ itemId, price: { currency: 'EUR', value: itemId.endsWith('monthly') ? '2.99' : '25' } })),
-      listPurchases: async () => [],
+      listPurchases: async () => (localStorage.getItem('documaster.shotNoSub') ? [] : [{ itemId: 'documaster_pro_monthly' }]),
     });
   });
 }
@@ -196,6 +196,12 @@ await shot('05-analisi');
 
 // 6) DocuMaster Pro
 await closeModals();
+if (device === 'desktop') {
+  // Schermata di abbonamento: come chi non è ancora abbonato
+  await page.evaluate(() => localStorage.setItem('documaster.shotNoSub', '1'));
+  await page.reload();
+  await page.waitForTimeout(1500);
+}
 await page.evaluate(async () => {
   window.__documaster.openProModal();
 });
