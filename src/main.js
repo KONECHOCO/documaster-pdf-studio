@@ -26,6 +26,8 @@ import { openReaderModal } from './components/ReaderModal.js';
 import { openModal, setContinueHandler, setViewHandler, closeTopModal, preparePdf, showError, escapeHtml } from './components/ui.js';
 import { TOOLS, PDF_TOOLS } from './tools.js';
 import { listenForIncomingFiles, listenForBackButton, isNative } from './platform/files.js';
+import { initPwa } from './platform/pwa.js';
+import { initStoreSubscription, isSubscribed, mustSubscribe, storeSubscriptionActive, trialDaysLeft } from './services/storeSubscription.js';
 import { initMonetization, trackAdAction, subscribeMonetization, getMonetization, showPrivacyOptions } from './services/monetization.js';
 import { isPdfFile } from './utils/pdfHelper.js';
 
@@ -68,6 +70,7 @@ function countToolOpen(toolId) {
 
 /** Apre uno strumento, eventualmente con file già pronti (decifrati se protetti). */
 export function openTool(toolId, files = [], { auto = false } = {}) {
+  if (mustSubscribe()) return openProModal();
   trackAdAction();
   if (!auto) countToolOpen(toolId);
   const file = files[0] || null;
@@ -188,5 +191,11 @@ if (pageTool && TOOLS.some((tool) => tool.id === pageTool)) openTool(pageTool, [
 window.__documaster = { openTool, openProModal };
 
 listenForIncomingFiles(receiveFile);
+initPwa(receiveFile);
+initStoreSubscription().then(() => {
+  if (!storeSubscriptionActive()) return;
+  renderAll();
+  if (!isSubscribed() && trialDaysLeft() > 0) toast(t('sub.trialLeft', { days: trialDaysLeft() }));
+});
 listenForBackButton(closeTopModal);
 initMonetization();

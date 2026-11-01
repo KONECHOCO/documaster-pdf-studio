@@ -1,9 +1,12 @@
 // Schermata DocuMaster Pro: acquisto una tantum che rimuove la pubblicità + Ripristina acquisti.
 import { t } from '../i18n/index.js';
 import { getMonetization, buyPro, restorePro } from '../services/monetization.js';
+import { storeSubscriptionActive } from '../services/storeSubscription.js';
+import { openSubscriptionModal } from './SubscriptionModal.js';
 import { openModal, escapeHtml, ICONS } from './ui.js';
 
 export function openProModal() {
+  if (storeSubscriptionActive()) return openSubscriptionModal();
   const m = openModal({ title: t('pro.title'), subtitle: t('pro.subtitle'), icon: ICONS.crown, color: 'linear-gradient(135deg,#f59e0b,#d97706)', size: 'sm' });
 
   function render(message = '') {

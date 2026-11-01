@@ -40,7 +40,7 @@ export default {
   languages: { it: 'Italienisch', en: 'Englisch', es: 'Spanisch', fr: 'Französisch', de: 'Deutsch', pt: 'Portugiesisch', ja: 'Japanisch' },
   tools: {
     reader: { title: 'PDF-Reader', desc: 'PDFs im Vollbild lesen: durchgehendes Scrollen, Zoom mit zwei Fingern, Textsuche, Inhaltsverzeichnis und Nachtmodus. Macht dort weiter, wo du aufgehört hast.', badge: 'Lesen', keywords: 'lesen anzeigen öffnen viewer buch ebook nacht suchen' },
-    readAloud: { title: 'PDF vorlesen', desc: 'Lass dir deine PDFs von der Stimme deines Handys vorlesen, mit einstellbarer Geschwindigkeit. Gescannte Seiten werden per OCR gelesen.', badge: 'Stimme', keywords: 'vorlesen anhören audio sprachausgabe tts stimme hörbuch' },
+    readAloud: { title: 'PDF vorlesen', desc: 'Lass dir deine PDFs von der Stimme deines Geräts vorlesen, mit einstellbarer Geschwindigkeit. Gescannte Seiten werden per OCR gelesen.', badge: 'Stimme', keywords: 'vorlesen anhören audio sprachausgabe tts stimme hörbuch' },
     scanner: { title: 'Dokumentenscanner', desc: 'Dokumente und Belege fotografieren: Kanten automatisch erkannt, Perspektive korrigiert, Schatten entfernt.', badge: 'Kamera', keywords: 'scannen foto kamera beleg quittung' },
     ocr: { title: 'OCR – Durchsuchbarer Text', desc: 'Erkennt Text in gescannten PDFs und Fotos, damit du ihn suchen, markieren und kopieren kannst.', badge: 'OCR', keywords: 'texterkennung gescannt suchen' },
     merge: { title: 'PDF zusammenfügen', desc: 'Mehrere PDFs in der gewünschten Reihenfolge zu einem Dokument kombinieren.', badge: 'Meistgenutzt', keywords: 'zusammenführen kombinieren verbinden' },
@@ -295,6 +295,19 @@ export default {
     legal: 'Alle Werkzeuge bleiben auch ohne Pro kostenlos. Die Zahlung wird über den App Store oder Google Play abgewickelt.',
     bannerText: 'Entferne die Werbung mit einem einzigen Kauf.',
     discover: 'Pro entdecken',
+  },
+  sub: {
+    subtitle: "Alle Werkzeuge, ohne Werbung",
+    benefitAll: "Alle 24 PDF-Werkzeuge",
+    benefitNoAds: "Keine Werbung",
+    benefitPrivate: "Deine Dateien bleiben auf deinem PC",
+    trialLeft: "Kostenlose Testphase: noch {days} Tage",
+    trialOver: "Deine 3-tägige Testphase ist beendet. Schließe ein Abo ab, um fortzufahren.",
+    active: "Abo aktiv: danke!",
+    monthly: "{price} pro Monat",
+    yearly: "{price} pro Jahr",
+    manage: "Abo verwalten",
+    legal: "Verlängert sich automatisch bis zur Kündigung. Du kannst jederzeit in deinem Microsoft-Konto kündigen. Die Zahlung läuft über den Microsoft Store.",
   },
   chooser: {
     title: 'Was möchtest du mit diesem PDF tun?',

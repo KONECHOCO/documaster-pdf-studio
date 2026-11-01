@@ -40,7 +40,7 @@ export default {
   languages: { it: 'イタリア語', en: '英語', es: 'スペイン語', fr: 'フランス語', de: 'ドイツ語', pt: 'ポルトガル語', ja: '日本語' },
   tools: {
     reader: { title: 'PDFリーダー', desc: 'PDFを全画面で閲覧：連続スクロール、ピンチズーム、テキスト検索、目次、ナイトモード。前回の続きから開きます。', badge: '閲覧', keywords: '閲覧 表示 開く ビューア 本 電子書籍 ナイト 検索' },
-    readAloud: { title: 'PDF読み上げ', desc: 'スマホの音声でPDFを読み上げ。速度は調整可能。スキャンしたページはOCRで読み取ります。', badge: '音声', keywords: '読み上げ 音声 聞く テキスト読み上げ tts オーディオブック' },
+    readAloud: { title: 'PDF読み上げ', desc: 'デバイスの音声でPDFを読み上げ。速度は調整可能。スキャンしたページはOCRで読み取ります。', badge: '音声', keywords: '読み上げ 音声 聞く テキスト読み上げ tts オーディオブック' },
     scanner: { title: '書類スキャナー', desc: '書類やレシートを撮影：輪郭を自動検出し、歪みを補正して影を除去します。', badge: 'カメラ', keywords: 'スキャン 写真 カメラ レシート 領収書' },
     ocr: { title: 'OCR（文字認識）', desc: 'スキャンしたPDFや写真の文字を認識し、検索・選択・コピーできるようにします。', badge: 'OCR', keywords: '文字認識 スキャン 検索 テキスト化' },
     merge: { title: 'PDF結合', desc: '複数のPDFを好きな順番でひとつにまとめます。', badge: '人気No.1', keywords: '結合 まとめる 合体' },
@@ -295,6 +295,19 @@ export default {
     legal: 'Proがなくてもすべてのツールを無料で使えます。お支払いはApp StoreまたはGoogle Playが処理します。',
     bannerText: '一度の購入で広告を非表示に。',
     discover: 'Proを見る',
+  },
+  sub: {
+    subtitle: "すべてのツールを広告なしで",
+    benefitAll: "24種類のPDFツールすべて",
+    benefitNoAds: "広告なし",
+    benefitPrivate: "ファイルはお使いのPCから出ません",
+    trialLeft: "無料トライアル：残り{days}日",
+    trialOver: "3日間の無料トライアルが終了しました。続けるにはサブスクリプションにご登録ください。",
+    active: "サブスクリプション有効：ありがとうございます！",
+    monthly: "月額 {price}",
+    yearly: "年額 {price}",
+    manage: "サブスクリプションの管理",
+    legal: "解約するまで自動更新されます。Microsoftアカウントからいつでも解約できます。お支払いはMicrosoft Storeが処理します。",
   },
   chooser: {
     title: 'このPDFで何をしますか？',

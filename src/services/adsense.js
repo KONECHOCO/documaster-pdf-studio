@@ -2,10 +2,11 @@
 // Si attiva impostando VITE_ADSENSE_CLIENT (ca-pub-…) e VITE_ADSENSE_SLOT in .env.production
 // dopo l'approvazione del sito su AdSense. Il consenso GDPR è gestito dal messaggio di Google (Privacy e messaggi).
 import { Capacitor } from '@capacitor/core';
+import { isInstalledApp } from '../platform/pwa.js';
 
 const CLIENT = import.meta.env.VITE_ADSENSE_CLIENT;
 const SLOT = import.meta.env.VITE_ADSENSE_SLOT;
-const enabled = !Capacitor.isNativePlatform() && !!CLIENT && !!SLOT;
+const enabled = !Capacitor.isNativePlatform() && !isInstalledApp && !!CLIENT && !!SLOT;
 let scriptLoaded = false;
 
 function loadScript() {

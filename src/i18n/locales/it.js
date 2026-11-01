@@ -40,7 +40,7 @@ export default {
   languages: { it: 'Italiano', en: 'Inglese', es: 'Spagnolo', fr: 'Francese', de: 'Tedesco', pt: 'Portoghese', ja: 'Giapponese' },
   tools: {
     reader: { title: 'Lettore PDF', desc: 'Leggi i PDF a schermo intero: scorrimento continuo, zoom con due dita, ricerca nel testo, indice e modalità notte. Riprende dall’ultima pagina.', badge: 'Lettura', keywords: 'leggi visualizza apri visualizzatore libro ebook notte cerca' },
-    readAloud: { title: 'Leggi PDF ad alta voce', desc: 'Ascolta i tuoi PDF letti dalla voce del telefono, con velocità regolabile. Le pagine scansionate vengono lette con l’OCR.', badge: 'Voce', keywords: 'ascolta audio sintesi vocale tts leggere voce audiolibro' },
+    readAloud: { title: 'Leggi PDF ad alta voce', desc: 'Ascolta i tuoi PDF letti dalla voce del dispositivo, con velocità regolabile. Le pagine scansionate vengono lette con l’OCR.', badge: 'Voce', keywords: 'ascolta audio sintesi vocale tts leggere voce audiolibro' },
     scanner: { title: 'Scanner documenti', desc: 'Fotografa documenti e ricevute: bordi rilevati in automatico, prospettiva raddrizzata, ombre rimosse.', badge: 'Fotocamera', keywords: 'scansione foto camera ricevuta scontrino' },
     ocr: { title: 'OCR – Testo ricercabile', desc: 'Riconosce il testo nei PDF scansionati e nelle foto: potrai cercarlo, selezionarlo e copiarlo.', badge: 'OCR', keywords: 'riconoscimento testo scansionato ricerca' },
     merge: { title: 'Unisci PDF', desc: 'Combina più PDF in un unico documento, nell’ordine che preferisci.', badge: 'Più usato', keywords: 'combina unire accorpa' },
@@ -295,6 +295,19 @@ export default {
     legal: 'Tutti gli strumenti restano gratuiti anche senza Pro. Il pagamento è gestito da App Store o Google Play.',
     bannerText: 'Togli la pubblicità con un solo acquisto.',
     discover: 'Scopri Pro',
+  },
+  sub: {
+    subtitle: "Tutti gli strumenti, senza pubblicità",
+    benefitAll: "Tutti i 24 strumenti PDF",
+    benefitNoAds: "Nessuna pubblicità",
+    benefitPrivate: "I tuoi file restano sul tuo PC",
+    trialLeft: "Prova gratuita: {days} giorni rimasti",
+    trialOver: "La prova gratuita di 3 giorni è terminata. Abbonati per continuare.",
+    active: "Abbonamento attivo: grazie!",
+    monthly: "{price} al mese",
+    yearly: "{price} all'anno",
+    manage: "Gestisci abbonamento",
+    legal: "Il rinnovo è automatico fino alla disdetta. Puoi disdire in qualsiasi momento dal tuo account Microsoft. Il pagamento è gestito dal Microsoft Store.",
   },
   chooser: {
     title: 'Cosa vuoi fare con questo PDF?',

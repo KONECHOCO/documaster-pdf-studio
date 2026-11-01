@@ -1,18 +1,19 @@
 // Screenshot per gli store dall'app reale (strumenti veri su documenti di esempio), nella lingua scelta.
 // Prerequisito: build di produzione servita (`npm run build && npx vite preview --port 4179`).
-// Uso: node scripts/capture-store-screenshots.mjs [iphone|ipad|android] [it|en|fr|es|de|pt|ja]
+// Uso: node scripts/capture-store-screenshots.mjs [iphone|ipad|android|desktop] [it|en|fr|es|de|pt|ja]
 import { chromium } from 'playwright';
 import { mkdir, readFile } from 'node:fs/promises';
 import { PDFDocument } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 
-const device = ['ipad', 'android'].includes(process.argv[2]) ? process.argv[2] : 'iphone';
+const device = ['ipad', 'android', 'desktop'].includes(process.argv[2]) ? process.argv[2] : 'iphone';
 const lang = process.argv[3] || 'it';
 const BASE = process.env.BASE_URL || 'http://localhost:4179/';
 const SIZES = {
   iphone: { viewport: { width: 440, height: 956 }, deviceScaleFactor: 3, suffix: '1320x2868' },
   ipad: { viewport: { width: 1032, height: 1376 }, deviceScaleFactor: 2, suffix: 'ipad-2064x2752' },
   android: { viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, suffix: 'android-1080x1920' },
+  desktop: { viewport: { width: 1366, height: 768 }, deviceScaleFactor: 1.40556, suffix: 'desktop-1920x1080' },
 };
 // Documento di esempio nella lingua dello screenshot
 const DOC = {
@@ -32,8 +33,8 @@ const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: size.viewport,
   deviceScaleFactor: size.deviceScaleFactor,
-  isMobile: device !== 'ipad',
-  hasTouch: true,
+  isMobile: device !== 'ipad' && device !== 'desktop',
+  hasTouch: device !== 'desktop',
   locale: lang,
   colorScheme: 'dark',
 });
@@ -42,8 +43,17 @@ await context.addInitScript((l) => {
   localStorage.setItem('documaster_theme', 'dark');
   localStorage.setItem('documaster.storeshot', 'true');
 }, lang);
+if (device === 'desktop') {
+  // Microsoft Store simulato: abbonamento mensile e annuale, come nell'app installata
+  await context.addInitScript(() => {
+    window.getDigitalGoodsService = async () => ({
+      getDetails: async (ids) => ids.map((itemId) => ({ itemId, price: { currency: 'EUR', value: itemId.endsWith('monthly') ? '2.99' : '25' } })),
+      listPurchases: async () => [],
+    });
+  });
+}
 const page = await context.newPage();
-await page.goto(`${BASE}?storeshot`);
+await page.goto(`${BASE}${device === 'desktop' ? 'app/' : ''}?storeshot`);
 await page.waitForTimeout(1500);
 
 const shot = async (name) => {

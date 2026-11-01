@@ -1,6 +1,7 @@
 // Barra superiore: logo (7 tocchi = annunci di test, per le build di prova), lingua, tema, Pro.
 import { t, getLanguage, setLanguage, LANGUAGES } from '../i18n/index.js';
 import { getMonetization, toggleTestAds } from '../services/monetization.js';
+import { storeSubscriptionActive } from '../services/storeSubscription.js';
 import { escapeHtml, toast, ICONS } from './ui.js';
 
 let logoTaps = 0;
@@ -30,7 +31,7 @@ export function renderHeader(container, { onLanguageChange, onThemeToggle, onOpe
             ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
             : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'}
         </button>
-        ${native && !isPro ? `<button class="pro-btn" id="pro-btn">${ICONS.crown}<span>Pro</span></button>` : ''}
+        ${(native && !isPro) || storeSubscriptionActive() ? `<button class="pro-btn" id="pro-btn">${ICONS.crown}<span>Pro</span></button>` : ''}
       </div>
     </nav>`;
 

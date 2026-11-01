@@ -3,7 +3,7 @@
 // L'app è la stessa: la pagina indica solo lingua (data-page-lang) e strumento da aprire (data-tool).
 // Testi lunghi (uso, passaggi, domande frequenti, chi siamo, contatti, guide) in seo-content/<lingua>.mjs.
 // Uso: npm run build:web (dopo vite build).
-import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, access, readdir } from 'node:fs/promises';
 import { TOOLS } from '../src/tools.js';
 
 const SITE = 'https://offlinepdfstudio.com';
@@ -227,6 +227,19 @@ ${g.sections.map(([h, t]) => `    <h2>${esc(h)}</h2>\n    <p>${esc(t)}</p>`).joi
 
 // La radice: inglese come x-default, con i collegamenti alle lingue
 await writeFile('dist/index.html', page('en', null).replace(' data-page-lang="en"', ''));
+
+// App installata (Microsoft Store): pagina senza pubblicità, fuori dall'indice, e file per il lavoro offline
+await mkdir('dist/app', { recursive: true });
+await writeFile('dist/app/index.html', template.replace('</head>', '<meta name="robots" content="noindex" /></head>'));
+const assets = [];
+for (const dir of ['assets', 'vendor', 'fonts', 'icons']) {
+  for (const e of await readdir(`dist/${dir}`, { recursive: true, withFileTypes: true })) {
+    if (!e.isFile() || e.name.endsWith('.woff')) continue;
+    assets.push(`${e.parentPath.replace(/\\/g, '/').replace(/^dist/, '')}/${e.name}`);
+  }
+}
+await writeFile('dist/sw-assets.json', JSON.stringify(['/app/', '/favicon.svg', ...assets]));
+await writeFile('dist/sw.js', (await readFile('dist/sw.js', 'utf8')).replace('__BUILD__', Date.now().toString(36)));
 
 await writeFile(
   'dist/sitemap.xml',

@@ -40,7 +40,7 @@ export default {
   languages: { it: 'Italian', en: 'English', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', ja: 'Japanese' },
   tools: {
     reader: { title: 'PDF Reader', desc: 'Read PDFs full screen: continuous scrolling, pinch to zoom, text search, table of contents and night mode. Picks up where you left off.', badge: 'Read', keywords: 'read view open viewer book ebook night search' },
-    readAloud: { title: 'Read PDF Aloud', desc: 'Listen to your PDFs read by your phone’s voice, with adjustable speed. Scanned pages are read using OCR.', badge: 'Voice', keywords: 'listen audio text to speech tts voice audiobook speak' },
+    readAloud: { title: 'Read PDF Aloud', desc: 'Listen to your PDFs read by your device’s voice, with adjustable speed. Scanned pages are read using OCR.', badge: 'Voice', keywords: 'listen audio text to speech tts voice audiobook speak' },
     scanner: { title: 'Document scanner', desc: 'Photograph documents and receipts: edges detected automatically, perspective straightened, shadows removed.', badge: 'Camera', keywords: 'scan photo camera receipt' },
     ocr: { title: 'OCR – Searchable text', desc: 'Recognizes text in scanned PDFs and photos so you can search, select and copy it.', badge: 'OCR', keywords: 'text recognition scanned search' },
     merge: { title: 'Merge PDF', desc: 'Combine several PDFs into one document, in the order you want.', badge: 'Most used', keywords: 'combine join' },
@@ -295,6 +295,19 @@ export default {
     legal: 'Every tool stays free without Pro. Payment is handled by the App Store or Google Play.',
     bannerText: 'Remove ads with a single purchase.',
     discover: 'Discover Pro',
+  },
+  sub: {
+    subtitle: "All the tools, no ads",
+    benefitAll: "All 24 PDF tools",
+    benefitNoAds: "No ads",
+    benefitPrivate: "Your files stay on your PC",
+    trialLeft: "Free trial: {days} days left",
+    trialOver: "Your 3-day free trial has ended. Subscribe to continue.",
+    active: "Subscription active: thank you!",
+    monthly: "{price} per month",
+    yearly: "{price} per year",
+    manage: "Manage subscription",
+    legal: "Renews automatically until cancelled. You can cancel at any time from your Microsoft account. Payment is handled by the Microsoft Store.",
   },
   chooser: {
     title: 'What do you want to do with this PDF?',

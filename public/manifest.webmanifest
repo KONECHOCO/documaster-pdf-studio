@@ -1,0 +1,22 @@
+{
+  "id": "/app/",
+  "name": "DocuMaster PDF Studio",
+  "short_name": "DocuMaster",
+  "description": "Scan, edit, sign, compress, merge, convert and OCR PDFs. 100% on-device: your files never leave your computer.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/app/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "categories": ["productivity", "utilities", "business"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "file_handlers": [
+    { "action": "/app/", "accept": { "application/pdf": [".pdf"] } }
+  ]
+}

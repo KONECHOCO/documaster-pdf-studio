@@ -40,7 +40,7 @@ export default {
   languages: { it: 'Italien', en: 'Anglais', es: 'Espagnol', fr: 'Français', de: 'Allemand', pt: 'Portugais', ja: 'Japonais' },
   tools: {
     reader: { title: 'Lecteur PDF', desc: 'Lisez vos PDF en plein écran : défilement continu, zoom à deux doigts, recherche, sommaire et mode nuit. Reprend là où vous vous étiez arrêté.', badge: 'Lecture', keywords: 'lire afficher ouvrir visionneuse livre ebook nuit rechercher' },
-    readAloud: { title: 'Lire un PDF à voix haute', desc: 'Écoutez vos PDF lus par la voix de votre téléphone, à la vitesse de votre choix. Les pages scannées sont lues grâce à l’OCR.', badge: 'Voix', keywords: 'écouter audio synthèse vocale tts voix livre audio' },
+    readAloud: { title: 'Lire un PDF à voix haute', desc: 'Écoutez vos PDF lus par la voix de votre appareil, à la vitesse de votre choix. Les pages scannées sont lues grâce à l’OCR.', badge: 'Voix', keywords: 'écouter audio synthèse vocale tts voix livre audio' },
     scanner: { title: 'Scanner de documents', desc: 'Photographiez documents et tickets : bords détectés automatiquement, perspective redressée, ombres supprimées.', badge: 'Appareil photo', keywords: 'numériser scanner photo ticket reçu' },
     ocr: { title: 'OCR – Texte recherchable', desc: 'Reconnaît le texte des PDF numérisés et des photos pour le rechercher, le sélectionner et le copier.', badge: 'OCR', keywords: 'reconnaissance texte numérisé recherche' },
     merge: { title: 'Fusionner PDF', desc: 'Combinez plusieurs PDF en un seul document, dans l’ordre de votre choix.', badge: 'Le plus utilisé', keywords: 'combiner assembler regrouper' },
@@ -295,6 +295,19 @@ export default {
     legal: 'Tous les outils restent gratuits sans Pro. Le paiement est géré par l’App Store ou Google Play.',
     bannerText: 'Supprimez la publicité en un seul achat.',
     discover: 'Découvrir Pro',
+  },
+  sub: {
+    subtitle: "Tous les outils, sans publicité",
+    benefitAll: "Les 24 outils PDF",
+    benefitNoAds: "Aucune publicité",
+    benefitPrivate: "Vos fichiers restent sur votre PC",
+    trialLeft: "Essai gratuit : {days} jours restants",
+    trialOver: "Votre essai gratuit de 3 jours est terminé. Abonnez-vous pour continuer.",
+    active: "Abonnement actif : merci !",
+    monthly: "{price} par mois",
+    yearly: "{price} par an",
+    manage: "Gérer l'abonnement",
+    legal: "Renouvellement automatique jusqu'à résiliation. Vous pouvez résilier à tout moment depuis votre compte Microsoft. Le paiement est géré par le Microsoft Store.",
   },
   chooser: {
     title: 'Que voulez-vous faire de ce PDF ?',

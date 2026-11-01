@@ -40,7 +40,7 @@ export default {
   languages: { it: 'Italiano', en: 'Inglês', es: 'Espanhol', fr: 'Francês', de: 'Alemão', pt: 'Português', ja: 'Japonês' },
   tools: {
     reader: { title: 'Leitor de PDF', desc: 'Leia PDFs em tela cheia: rolagem contínua, zoom com dois dedos, busca no texto, sumário e modo noturno. Continua de onde você parou.', badge: 'Leitura', keywords: 'ler ver abrir visualizador livro ebook noite buscar' },
-    readAloud: { title: 'Ler PDF em voz alta', desc: 'Ouça seus PDFs lidos pela voz do celular, com velocidade ajustável. Páginas digitalizadas são lidas com OCR.', badge: 'Voz', keywords: 'ouvir áudio texto para fala tts voz audiolivro' },
+    readAloud: { title: 'Ler PDF em voz alta', desc: 'Ouça seus PDFs lidos pela voz do dispositivo, com velocidade ajustável. Páginas digitalizadas são lidas com OCR.', badge: 'Voz', keywords: 'ouvir áudio texto para fala tts voz audiolivro' },
     scanner: { title: 'Scanner de documentos', desc: 'Fotografe documentos e recibos: bordas detectadas automaticamente, perspectiva corrigida, sombras removidas.', badge: 'Câmera', keywords: 'digitalizar escanear foto câmera recibo' },
     ocr: { title: 'OCR – Texto pesquisável', desc: 'Reconhece o texto de PDFs digitalizados e fotos para que você possa pesquisar, selecionar e copiar.', badge: 'OCR', keywords: 'reconhecimento texto digitalizado pesquisa' },
     merge: { title: 'Juntar PDF', desc: 'Combine vários PDFs num só documento, na ordem que quiser.', badge: 'Mais usado', keywords: 'combinar unir mesclar' },
@@ -295,6 +295,19 @@ export default {
     legal: 'Todas as ferramentas continuam grátis sem o Pro. O pagamento é feito pela App Store ou pelo Google Play.',
     bannerText: 'Remova a publicidade com uma única compra.',
     discover: 'Conhecer o Pro',
+  },
+  sub: {
+    subtitle: "Todas as ferramentas, sem anúncios",
+    benefitAll: "As 24 ferramentas de PDF",
+    benefitNoAds: "Sem anúncios",
+    benefitPrivate: "Seus arquivos ficam no seu PC",
+    trialLeft: "Teste grátis: faltam {days} dias",
+    trialOver: "Seu teste grátis de 3 dias terminou. Assine para continuar.",
+    active: "Assinatura ativa: obrigado!",
+    monthly: "{price} por mês",
+    yearly: "{price} por ano",
+    manage: "Gerenciar assinatura",
+    legal: "Renovação automática até o cancelamento. Você pode cancelar a qualquer momento na sua conta Microsoft. O pagamento é feito pela Microsoft Store.",
   },
   chooser: {
     title: 'O que você quer fazer com este PDF?',
