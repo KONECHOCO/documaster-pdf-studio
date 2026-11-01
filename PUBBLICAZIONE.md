@@ -26,6 +26,12 @@ Aggiornato al 14/10/2026.
 
 ## ⏳ Da fare
 
+0. **Microsoft Store** (iniziato l'1/11/2026): prodotto `9PCNNMC35RFR`, identità `IKONETSOLUTIONS.DocuMasterPDFStudio`, publisher `CN=4C92E42E-BF2E-4754-85E0-62CB2D50F185`. L'app è la PWA della pagina `/app/` (senza pubblicità né donazioni, fuori dall'indice Google).
+   - Modello: download gratis, 3 giorni di prova contati dall'app (Microsoft offre solo 1 settimana o 1 mese), poi abbonamento `documaster_pro_monthly` (2,99 €) o `documaster_pro_yearly` (25 €). Prezzo e periodo non si possono alzare dopo la pubblicazione.
+   - I componenti aggiuntivi si inviano dopo la pubblicazione dell'app: fino ad allora l'app resta utilizzabile senza limiti.
+   - Testi: `node scripts/build-msstore-listing.mjs` → `store-assets/microsoft/listing.json`. Screenshot: `*-desktop-1920x1080.png`.
+   - Da fare: pacchetto con PWABuilder, scheda in 13 lingue, invio senza Francia, abbonamenti, prova reale dell'acquisto dallo Store.
+
 1. **Android / Google Play** — app creata su Play Console il 17/10/2026 (id `4976308306820947948`, account personale: serve un **test chiuso con 12 tester per 14 giorni** prima della produzione). Scheda en-US salvata in bozza (testi, icona, grafica, 7 screenshot `*-android-1080x1920.png`).
    - Chiave di caricamento creata il 17/10/2026: `C:\Users\rebic\Desktop\master\DOCUMASTER_ANDROID_SIGNING\documaster-upload.jks` (alias `documaster`, password in `keystore-info.txt` nella stessa cartella). **Non perderla.**
    - AAB 1.0.0 (versionCode 1) costruito in locale: `DOCUMASTER_ANDROID_SIGNING\documaster-1.0.0-1.aab`. Build: `npm run build`, `cap sync android` (Node 22), poi `gradlew bundleRelease` con `JAVA_HOME` = jbr di Android Studio e le variabili `CM_KEYSTORE_PATH`, `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS`, `CM_KEY_PASSWORD`, `BUILD_NUMBER`.
