@@ -1,6 +1,6 @@
-// Schermata abbonamento dell'app del Microsoft Store: mensile o annuale, dopo 3 giorni di prova.
+// Schermata abbonamento dell'app del Microsoft Store: mensile o annuale, con 7 giorni di prova.
 import { t } from '../i18n/index.js';
-import { SUB_MONTHLY, SUB_YEARLY, isSubscribed, subscribe, subscriptionPrice, trialDaysLeft } from '../services/storeSubscription.js';
+import { SUB_MONTHLY, SUB_YEARLY, isSubscribed, subscribe, subscriptionPrice } from '../services/storeSubscription.js';
 import { openModal, escapeHtml, ICONS } from './ui.js';
 
 const MANAGE_URL = 'https://account.microsoft.com/services';
@@ -14,8 +14,7 @@ export function openSubscriptionModal() {
   }
 
   function render(message = '') {
-    const days = trialDaysLeft();
-    const status = isSubscribed() ? t('sub.active') : days > 0 ? t('sub.trialLeft', { days }) : t('sub.trialOver');
+    const status = isSubscribed() ? t('sub.active') : t('sub.intro');
     m.body.innerHTML = `
       <ul class="pro-benefits">
         ${['benefitAll', 'benefitNoAds', 'benefitPrivate'].map((k) => `<li>✓ <span>${escapeHtml(t(`sub.${k}`))}</span></li>`).join('')}

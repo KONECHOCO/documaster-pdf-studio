@@ -23,11 +23,11 @@ import { openFillFormModal } from './components/FillFormModal.js';
 import { openRedactModal } from './components/RedactModal.js';
 import { openProModal } from './components/ProModal.js';
 import { openReaderModal } from './components/ReaderModal.js';
-import { openModal, setContinueHandler, setViewHandler, closeTopModal, preparePdf, showError, escapeHtml, toast } from './components/ui.js';
+import { openModal, setContinueHandler, setViewHandler, closeTopModal, preparePdf, showError, escapeHtml } from './components/ui.js';
 import { TOOLS, PDF_TOOLS } from './tools.js';
 import { listenForIncomingFiles, listenForBackButton, isNative } from './platform/files.js';
 import { initPwa } from './platform/pwa.js';
-import { initStoreSubscription, isSubscribed, mustSubscribe, storeSubscriptionActive, trialDaysLeft } from './services/storeSubscription.js';
+import { initStoreSubscription, mustSubscribe, storeSubscriptionActive } from './services/storeSubscription.js';
 import { initMonetization, trackAdAction, subscribeMonetization, getMonetization, showPrivacyOptions } from './services/monetization.js';
 import { isPdfFile } from './utils/pdfHelper.js';
 
@@ -193,9 +193,7 @@ window.__documaster = { openTool, openProModal };
 listenForIncomingFiles(receiveFile);
 initPwa(receiveFile);
 initStoreSubscription().then(() => {
-  if (!storeSubscriptionActive()) return;
-  renderAll();
-  if (!isSubscribed() && trialDaysLeft() > 0) toast(t('sub.trialLeft', { days: trialDaysLeft() }));
+  if (storeSubscriptionActive()) renderAll();
 });
 listenForBackButton(closeTopModal);
 initMonetization();
