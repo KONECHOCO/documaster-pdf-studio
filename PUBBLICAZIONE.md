@@ -31,7 +31,9 @@ Aggiornato al 14/10/2026.
    - I componenti aggiuntivi si inviano dopo la pubblicazione dell'app: fino ad allora l'app resta utilizzabile senza limiti. Dopo, senza abbonamento gli strumenti non si aprono.
    - Testi: `node scripts/build-msstore-listing.mjs` → `store-assets/microsoft/listing.json`. Screenshot: `*-desktop-1920x1080.png`.
    - **Inviata in certificazione l'1/11/2026** (pubblicazione automatica se supera, 239 mercati senza Francia). Pacchetti e CSV in `Desktop/master/DOCUMASTER_MSSTORE`.
-   - Dopo la pubblicazione: creare i due abbonamenti con prova di 7 giorni, provare l'acquisto reale dall'app installata, aggiungere le immagini promozionali facoltative.
+   - App pubblicata (~3/11). Abbonamenti inviati in certificazione il 7/11/2026: `documaster_pro_monthly` (9N4Q776ZH261) 2,99 €, `documaster_pro_yearly` (9N0J1CL3T5HK) 24,99 €, prova 1 settimana, senza Francia.
+   - Da fare: provare l'acquisto reale dall'app installata; immagini promozionali facoltative.
+   - **Google Play**: release 1.0.0 in produzione inviata in revisione il 6/11/2026 (176 paesi, senza Francia). Da fare (utente): dichiarazione "stato di commerciante".
 
 1. **Android / Google Play** — app creata su Play Console il 17/10/2026 (id `4976308306820947948`, account personale: serve un **test chiuso con 12 tester per 14 giorni** prima della produzione). Scheda en-US salvata in bozza (testi, icona, grafica, 7 screenshot `*-android-1080x1920.png`).
    - Chiave di caricamento creata il 17/10/2026: `C:\Users\rebic\Desktop\master\DOCUMASTER_ANDROID_SIGNING\documaster-upload.jks` (alias `documaster`, password in `keystore-info.txt` nella stessa cartella). **Non perderla.**
