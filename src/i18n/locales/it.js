@@ -305,6 +305,8 @@ export default {
     active: "Abbonamento attivo: grazie!",
     monthly: "{price} al mese",
     yearly: "{price} all'anno",
+    monthlyPlain: "Abbonamento mensile",
+    yearlyPlain: "Abbonamento annuale",
     manage: "Gestisci abbonamento",
     legal: "Il rinnovo è automatico fino alla disdetta. Puoi disdire in qualsiasi momento dal tuo account Microsoft. Il pagamento è gestito dal Microsoft Store.",
   },

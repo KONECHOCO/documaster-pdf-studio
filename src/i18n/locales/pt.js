@@ -305,6 +305,8 @@ export default {
     active: "Assinatura ativa: obrigado!",
     monthly: "{price} por mês",
     yearly: "{price} por ano",
+    monthlyPlain: "Assinatura mensal",
+    yearlyPlain: "Assinatura anual",
     manage: "Gerenciar assinatura",
     legal: "Renovação automática até o cancelamento. Você pode cancelar a qualquer momento na sua conta Microsoft. O pagamento é feito pela Microsoft Store.",
   },

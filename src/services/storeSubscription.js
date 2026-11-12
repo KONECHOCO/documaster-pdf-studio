@@ -44,10 +44,21 @@ export function mustSubscribe() {
   return storeSubscriptionActive() && !subscribed;
 }
 
+export function hasProduct(itemId) {
+  return products.some((p) => p.itemId === itemId);
+}
+
+/** Prezzo dell'abbonamento; null se il negozio non lo indica (durante la prova Microsoft riporta 0). */
 export function subscriptionPrice(itemId) {
   const item = products.find((p) => p.itemId === itemId);
   if (!item) return null;
-  return new Intl.NumberFormat(navigator.language, { style: 'currency', currency: item.price.currency }).format(item.price.value);
+  for (const price of [item.price, item.introductoryPrice]) {
+    const value = parseFloat(String(price?.value ?? '').replace(',', '.'));
+    if (value > 0 && price.currency) {
+      return new Intl.NumberFormat(navigator.language, { style: 'currency', currency: price.currency }).format(value);
+    }
+  }
+  return null;
 }
 
 /** Restituisce true se l'abbonamento è attivo dopo il pagamento; false se l'utente annulla. */

@@ -305,6 +305,8 @@ export default {
     active: "サブスクリプション有効：ありがとうございます！",
     monthly: "月額 {price}",
     yearly: "年額 {price}",
+    monthlyPlain: "月額プラン",
+    yearlyPlain: "年額プラン",
     manage: "サブスクリプションの管理",
     legal: "解約するまで自動更新されます。Microsoftアカウントからいつでも解約できます。お支払いはMicrosoft Storeが処理します。",
   },

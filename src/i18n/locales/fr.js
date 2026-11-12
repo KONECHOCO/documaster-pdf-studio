@@ -305,6 +305,8 @@ export default {
     active: "Abonnement actif : merci !",
     monthly: "{price} par mois",
     yearly: "{price} par an",
+    monthlyPlain: "Abonnement mensuel",
+    yearlyPlain: "Abonnement annuel",
     manage: "Gérer l'abonnement",
     legal: "Renouvellement automatique jusqu'à résiliation. Vous pouvez résilier à tout moment depuis votre compte Microsoft. Le paiement est géré par le Microsoft Store.",
   },

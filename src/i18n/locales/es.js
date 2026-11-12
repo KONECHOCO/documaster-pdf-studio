@@ -305,6 +305,8 @@ export default {
     active: "Suscripción activa: ¡gracias!",
     monthly: "{price} al mes",
     yearly: "{price} al año",
+    monthlyPlain: "Suscripción mensual",
+    yearlyPlain: "Suscripción anual",
     manage: "Gestionar suscripción",
     legal: "Se renueva automáticamente hasta que la canceles. Puedes cancelarla en cualquier momento desde tu cuenta Microsoft. El pago lo gestiona Microsoft Store.",
   },

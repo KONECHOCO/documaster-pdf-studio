@@ -305,6 +305,8 @@ export default {
     active: "Abo aktiv: danke!",
     monthly: "{price} pro Monat",
     yearly: "{price} pro Jahr",
+    monthlyPlain: "Monatsabo",
+    yearlyPlain: "Jahresabo",
     manage: "Abo verwalten",
     legal: "Verlängert sich automatisch bis zur Kündigung. Du kannst jederzeit in deinem Microsoft-Konto kündigen. Die Zahlung läuft über den Microsoft Store.",
   },

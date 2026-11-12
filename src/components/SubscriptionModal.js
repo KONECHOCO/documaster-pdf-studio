@@ -1,6 +1,6 @@
 // Schermata abbonamento dell'app del Microsoft Store: mensile o annuale, con 7 giorni di prova.
 import { t } from '../i18n/index.js';
-import { SUB_MONTHLY, SUB_YEARLY, isSubscribed, subscribe, subscriptionPrice } from '../services/storeSubscription.js';
+import { SUB_MONTHLY, SUB_YEARLY, hasProduct, isSubscribed, subscribe, subscriptionPrice } from '../services/storeSubscription.js';
 import { openModal, escapeHtml, ICONS } from './ui.js';
 
 const MANAGE_URL = 'https://account.microsoft.com/services';
@@ -9,8 +9,10 @@ export function openSubscriptionModal() {
   const m = openModal({ title: t('pro.title'), subtitle: t('sub.subtitle'), icon: ICONS.crown, color: 'linear-gradient(135deg,#f59e0b,#d97706)', size: 'sm' });
 
   function plan(id, labelKey) {
+    if (!hasProduct(id)) return '';
     const price = subscriptionPrice(id);
-    return price ? `<button class="btn btn-pro btn-block" data-plan="${id}">${ICONS.crown}<span>${escapeHtml(t(labelKey, { price }))}</span></button>` : '';
+    const label = price ? t(labelKey, { price }) : t(`${labelKey}Plain`);
+    return `<button class="btn btn-pro btn-block" data-plan="${id}">${ICONS.crown}<span>${escapeHtml(label)}</span></button>`;
   }
 
   function render(message = '') {
