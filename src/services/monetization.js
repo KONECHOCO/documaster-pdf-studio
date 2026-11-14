@@ -17,8 +17,11 @@ import {
   BannerAdPluginEvents,
   BannerAdPosition,
   BannerAdSize,
+  InterstitialAdPluginEvents,
 } from '@capacitor-community/admob';
 import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
+// Solo i contatori (non referral.js, che importa ui.js: eviterebbe un import circolare)
+import { attachAdMobListeners, trackPurchase } from './referral-core.js';
 
 export const PRO_PRODUCT_ID = 'documaster_pro';
 
@@ -271,6 +274,8 @@ export async function initMonetization() {
   diag('AdMob pronto');
 
   AdMob.addListener(BannerAdPluginEvents.SizeChanged, (size) => setState({ bannerHeight: size.height || 0 }));
+  // Programma ambasciatori: conta gli annunci visti dagli utenti invitati (nulla per gli altri)
+  attachAdMobListeners(AdMob, { BannerAdPluginEvents, AppOpenAdPluginEvents, InterstitialAdPluginEvents });
   AdMob.addListener(BannerAdPluginEvents.Loaded, () => diag('banner caricato'));
   AdMob.addListener(BannerAdPluginEvents.FailedToLoad, (err) =>
     diag(`banner fallito: ${err?.message || err?.code || JSON.stringify(err)}`)
@@ -367,7 +372,10 @@ export async function buyPro() {
     productType: PURCHASE_TYPE.INAPP,
     quantity: 1,
   });
-  if (tx?.productIdentifier === PRO_PRODUCT_ID) setPro(true);
+  if (tx?.productIdentifier === PRO_PRODUCT_ID) {
+    setPro(true);
+    trackPurchase();
+  }
   return state.isPro;
 }
 

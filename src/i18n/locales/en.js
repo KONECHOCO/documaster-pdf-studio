@@ -1,4 +1,15 @@
 export default {
+  referral: {
+    question: "Have an invitation code?",
+    title: "Invitation code",
+    placeholder: "E.g. AMADOU123",
+    apply: "Apply",
+    applied: "Invitation code applied:",
+    invalid: "Invalid code. Please check and try again.",
+    network: "No connection. Please try again shortly.",
+    expired: "An invitation code can only be entered within 7 days of installing.",
+    hint: "If someone recommended this app to you, enter their code: nothing changes for you and we collect no personal data.",
+  },
   header: {
     privacy: '100% on-device',
     privacyLong: 'Files are processed on your device and are never uploaded to a server.',

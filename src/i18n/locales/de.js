@@ -1,4 +1,15 @@
 export default {
+  referral: {
+    question: "Hast du einen Einladungscode?",
+    title: "Einladungscode",
+    placeholder: "z. B. AMADOU123",
+    apply: "Einlösen",
+    applied: "Einladungscode eingelöst:",
+    invalid: "Ungültiger Code. Bitte prüfen und erneut versuchen.",
+    network: "Keine Verbindung. Bitte gleich erneut versuchen.",
+    expired: "Ein Einladungscode kann nur in den ersten 7 Tagen nach der Installation eingegeben werden.",
+    hint: "Wenn dir jemand die App empfohlen hat, gib seinen Code ein: Für dich ändert sich nichts und wir erfassen keine persönlichen Daten.",
+  },
   header: {
     privacy: '100 % auf dem Gerät',
     privacyLong: 'Dateien werden auf deinem Gerät verarbeitet und nie auf einen Server hochgeladen.',

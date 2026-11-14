@@ -1,4 +1,15 @@
 export default {
+  referral: {
+    question: "Hai un codice invito?",
+    title: "Codice invito",
+    placeholder: "Es. AMADOU123",
+    apply: "Applica",
+    applied: "Codice invito applicato:",
+    invalid: "Codice non valido. Controlla e riprova.",
+    network: "Connessione assente. Riprova tra poco.",
+    expired: "Il codice invito si può inserire solo nei primi 7 giorni dall’installazione.",
+    hint: "Se qualcuno ti ha consigliato l’app, inserisci il suo codice: per te non cambia nulla e non raccogliamo dati personali.",
+  },
   header: {
     privacy: '100% sul dispositivo',
     privacyLong: 'I file vengono elaborati sul tuo dispositivo: non vengono mai caricati su un server.',

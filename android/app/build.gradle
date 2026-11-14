@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode Integer.parseInt(System.getenv("BUILD_NUMBER") ?: "1")
-        versionName "1.0.0"
+        versionName "1.0.1"
         // AdMob App ID di "DocuMaster Android" (sovrascrivibile con ADMOB_ANDROID_APP_ID)
         manifestPlaceholders = [admobAppId: System.getenv("ADMOB_ANDROID_APP_ID") ?: "ca-app-pub-1151868778464777~9100309947"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -50,6 +50,8 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // Play Install Referrer: attributes installs that came from an ambassador's invitation link
+    implementation "com.android.installreferrer:installreferrer:2.2"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

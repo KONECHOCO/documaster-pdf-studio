@@ -30,6 +30,7 @@ import { initPwa } from './platform/pwa.js';
 import { initStoreSubscription, mustSubscribe, storeSubscriptionActive } from './services/storeSubscription.js';
 import { initMonetization, trackAdAction, subscribeMonetization, getMonetization, showPrivacyOptions } from './services/monetization.js';
 import { isPdfFile } from './utils/pdfHelper.js';
+import { initReferral, showReferralButton, openReferralPrompt } from './services/referral.js';
 
 const app = document.getElementById('app');
 app.innerHTML = `
@@ -146,6 +147,10 @@ function renderAll() {
     onThemeToggle: toggleTheme,
     onOpenPro: openProModal,
     onHome: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+    showReferral: showReferralButton(),
+    onReferral: async () => {
+      if (await openReferralPrompt()) renderAll();
+    },
   });
   renderToolGrid(mainEl, {
     onSelectTool: (id) => openTool(id),
@@ -197,3 +202,5 @@ initStoreSubscription().then(() => {
 });
 listenForBackButton(closeTopModal);
 initMonetization();
+// Programma ambasciatori: invia dati solo se l'utente è arrivato da un invito
+initReferral().then(() => renderAll()).catch(() => {});

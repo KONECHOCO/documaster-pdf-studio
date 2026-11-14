@@ -7,7 +7,7 @@ import { escapeHtml, toast, ICONS } from './ui.js';
 let logoTaps = 0;
 let logoTimer = null;
 
-export function renderHeader(container, { onLanguageChange, onThemeToggle, onOpenPro, onHome }) {
+export function renderHeader(container, { onLanguageChange, onThemeToggle, onOpenPro, onHome, onReferral, showReferral = false }) {
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
   const { isPro, native } = getMonetization();
   container.innerHTML = `
@@ -31,6 +31,9 @@ export function renderHeader(container, { onLanguageChange, onThemeToggle, onOpe
             ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
             : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'}
         </button>
+        ${showReferral ? `<button class="control-btn" id="referral-btn" aria-label="${escapeHtml(t('referral.question'))}" title="${escapeHtml(t('referral.question'))}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
+        </button>` : ''}
         ${(native && !isPro) || storeSubscriptionActive() ? `<button class="pro-btn" id="pro-btn">${ICONS.crown}<span>Pro</span></button>` : ''}
       </div>
     </nav>`;
@@ -41,6 +44,7 @@ export function renderHeader(container, { onLanguageChange, onThemeToggle, onOpe
   });
   container.querySelector('#theme-toggle-btn').addEventListener('click', onThemeToggle);
   container.querySelector('#pro-btn')?.addEventListener('click', onOpenPro);
+  container.querySelector('#referral-btn')?.addEventListener('click', () => onReferral?.());
   container.querySelector('#brand-home').addEventListener('click', () => {
     onHome?.();
     logoTaps += 1;

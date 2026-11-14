@@ -1,4 +1,15 @@
 export default {
+  referral: {
+    question: "Tem um código de convite?",
+    title: "Código de convite",
+    placeholder: "Ex. AMADOU123",
+    apply: "Aplicar",
+    applied: "Código de convite aplicado:",
+    invalid: "Código inválido. Verifique e tente novamente.",
+    network: "Sem ligação. Tente novamente daqui a pouco.",
+    expired: "O código de convite só pode ser introduzido nos primeiros 7 dias após a instalação.",
+    hint: "Se alguém lhe recomendou a app, introduza o código dessa pessoa: para si nada muda e não recolhemos dados pessoais.",
+  },
   header: {
     privacy: '100% no dispositivo',
     privacyLong: 'Os arquivos são processados no seu dispositivo e nunca são enviados a um servidor.',
